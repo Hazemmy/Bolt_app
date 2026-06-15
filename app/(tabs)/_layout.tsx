@@ -1,12 +1,11 @@
 import { Tabs } from 'expo-router';
-import { Pill, AlertTriangle, Home, User } from 'lucide-react-native';
+import { Pill, Home, User } from 'lucide-react-native';
 import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus } from 'lucide-react-native';
 import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
 import { useState } from 'react';
 import { AddMedicineModal } from '@/components/AddMedicineModal';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
@@ -28,7 +27,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           const iconMap: Record<string, any> = {
             index: Home,
             medicines: Pill,
-            expiring: AlertTriangle,
             profile: User,
           };
 
@@ -46,25 +44,17 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             }
           };
 
-          // Middle position gets the floating add button
+          // Middle position gets the floating add button (no label)
           if (index === 1) {
             return (
               <View key={route.key} style={styles.tabItemContainer}>
-                <TouchableOpacity onPress={onPress} style={styles.tabItem}>
-                  <IconComponent
-                    size={22}
-                    color={isFocused ? Colors.tabBarActive : Colors.tabBarInactive}
-                    strokeWidth={2}
-                  />
-                  <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
-                    {options.title || route.name}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.floatingAddBtn}
-                  onPress={() => setShowAddModal(true)}
-                  activeOpacity={0.85}>
-                  <Plus size={28} color={Colors.textInverse} strokeWidth={2.5} />
+                <TouchableOpacity onPress={onPress} style={styles.addBtnTabItem}>
+                  <TouchableOpacity
+                    style={styles.floatingAddBtn}
+                    onPress={() => setShowAddModal(true)}
+                    activeOpacity={0.85}>
+                    <Plus size={28} color={Colors.textInverse} strokeWidth={2.5} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
               </View>
             );
@@ -117,12 +107,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="expiring"
-        options={{
-          title: 'Expiring',
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -154,6 +138,12 @@ const styles = StyleSheet.create({
   tabItemContainer: {
     flex: 1,
     alignItems: 'center',
+  },
+  addBtnTabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: Spacing.xs,
   },
   tabLabel: {
     ...Typography.tabLabel,

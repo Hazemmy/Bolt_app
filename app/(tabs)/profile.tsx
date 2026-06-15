@@ -9,10 +9,9 @@ import {
   RefreshControl,
   Alert,
   Platform,
-  FlatList,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { User, Plus, X, Trash2, LogOut } from 'lucide-react-native';
+import { User, Plus, X, LogOut, Calendar, Heart, Edit3, ChevronDown, ChevronUp, Mail } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
@@ -37,8 +36,8 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
-  // Edit fields
   const [editName, setEditName] = useState('');
   const [editAge, setEditAge] = useState('');
   const [editGender, setEditGender] = useState('');
@@ -56,7 +55,6 @@ export default function ProfileScreen() {
       setEditAge(profRes.data.age?.toString() ?? '');
       setEditGender(profRes.data.gender ?? '');
     } else if (!profRes.data) {
-      // Create empty profile
       await supabase.from('profiles').insert({ id: user!.id });
       setProfile({ id: user!.id, full_name: null, age: null, gender: null });
       setEditName('');
@@ -143,13 +141,16 @@ export default function ProfileScreen() {
 
   if (!user) return null;
 
-  const initials = editName
+  const hasProfile = profile?.full_name || profile?.age || profile?.gender;
+  const initials = (profile?.full_name || editName)
     .trim()
     .split(' ')
     .map((w) => w[0])
     .join('')
     .toUpperCase()
     .slice(0, 2) || '?';
+
+  const displayName = profile?.full_name || 'Your Name';
 
   return (
     <ScrollView
@@ -162,81 +163,142 @@ export default function ProfileScreen() {
         <Text style={styles.title}>Profile</Text>
       </View>
 
-      <View style={styles.avatarCard}>
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
-        <Text style={styles.userName}>{editName || 'Your Name'}</Text>
-        <Text style={styles.userEmail}>{user.email}</Text>
-      </View>
-
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Personal Info</Text>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Full Name</Text>
-          <TextInput
-            style={styles.input}
-            value={editName}
-            onChangeText={setEditName}
-            placeholder="Enter your name"
-            placeholderTextColor={Colors.textTertiary}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Age</Text>
-          <TextInput
-            style={styles.input}
-            value={editAge}
-            onChangeText={setEditAge}
-            placeholder="Enter your age"
-            placeholderTextColor={Colors.textTertiary}
-            keyboardType="number-pad"
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Gender</Text>
-          <View style={styles.genderRow}>
-            {GENDER_OPTIONS.map((g) => (
-              <TouchableOpacity
-                key={g}
-                style={[styles.genderChip, editGender === g && styles.genderChipSelected]}
-                onPress={() => setEditGender(g)}>
-                <Text style={[styles.genderChipText, editGender === g && styles.genderChipTextSelected]}>
-                  {g}
-                </Text>
-              </TouchableOpacity>
-            ))}
+      {/* Avatar + Summary Card */}
+      <View style={styles.summaryCard}>
+        <View style={styles.avatarRow}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={styles.avatarInfo}>
+            <Text style={styles.userName}>{displayName}</Text>
+            <View style={styles.emailRow}>
+              <Mail size={13} color={Colors.textTertiary} strokeWidth={2} />
+              <Text style={styles.userEmail}>{user.email}</Text>
+            </View>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-          onPress={saveProfile}
-          disabled={saving}>
-          <Text style={styles.saveBtnText}>
-            {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Profile'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {hasProfile && (
+          <View style={styles.summaryDivider} />
+        )}
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Current Illnesses</Text>
+        {hasProfile && (
+          <View style={styles.summaryDetails}>
+            {profile?.age && (
+              <View style={styles.detailItem}>
+                <View style={[styles.detailIconCircle, { backgroundColor: Colors.primaryLight }]}>
+                  <Calendar size={14} color={Colors.primary} strokeWidth={2} />
+                </View>
+                <Text style={styles.detailLabel}>Age</Text>
+                <Text style={styles.detailValue}>{profile.age}</Text>
+              </View>
+            )}
+            {profile?.gender && (
+              <View style={styles.detailItem}>
+                <View style={[styles.detailIconCircle, { backgroundColor: Colors.secondaryLight }]}>
+                  <User size={14} color={Colors.secondary} strokeWidth={2} />
+                </View>
+                <Text style={styles.detailLabel}>Gender</Text>
+                <Text style={styles.detailValue}>{profile.gender}</Text>
+              </View>
+            )}
+            {illnesses.length > 0 && (
+              <View style={styles.detailItem}>
+                <View style={[styles.detailIconCircle, { backgroundColor: Colors.dangerLight }]}>
+                  <Heart size={14} color={Colors.danger} strokeWidth={2} />
+                </View>
+                <Text style={styles.detailLabel}>Illnesses</Text>
+                <Text style={styles.detailValue}>{illnesses.length}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {illnesses.length > 0 && (
-          <View style={styles.illnessList}>
+          <View style={styles.illnessTags}>
             {illnesses.map((illness) => (
-              <View key={illness.id} style={styles.illnessChip}>
-                <Text style={styles.illnessChipText}>{illness.name}</Text>
-                <TouchableOpacity onPress={() => deleteIllness(illness.id)} style={styles.illnessDeleteBtn}>
-                  <X size={14} color={Colors.textTertiary} strokeWidth={2} />
+              <View key={illness.id} style={styles.illnessTag}>
+                <Text style={styles.illnessTagText}>{illness.name}</Text>
+                <TouchableOpacity onPress={() => deleteIllness(illness.id)} style={styles.illnessTagDelete}>
+                  <X size={12} color={Colors.danger} strokeWidth={2.5} />
                 </TouchableOpacity>
               </View>
             ))}
           </View>
         )}
+      </View>
+
+      {/* Edit Section - Collapsible */}
+      <TouchableOpacity
+        style={styles.editToggle}
+        onPress={() => setShowEdit(!showEdit)}
+        activeOpacity={0.7}>
+        <View style={styles.editToggleLeft}>
+          <Edit3 size={16} color={Colors.primary} strokeWidth={2} />
+          <Text style={styles.editToggleText}>Edit Personal Info</Text>
+        </View>
+        {showEdit ? (
+          <ChevronUp size={18} color={Colors.textTertiary} strokeWidth={2} />
+        ) : (
+          <ChevronDown size={18} color={Colors.textTertiary} strokeWidth={2} />
+        )}
+      </TouchableOpacity>
+
+      {showEdit && (
+        <View style={styles.editCard}>
+          <View style={styles.field}>
+            <Text style={styles.label}>Full Name</Text>
+            <TextInput
+              style={styles.input}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Enter your name"
+              placeholderTextColor={Colors.textTertiary}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Age</Text>
+            <TextInput
+              style={styles.input}
+              value={editAge}
+              onChangeText={setEditAge}
+              placeholder="Enter your age"
+              placeholderTextColor={Colors.textTertiary}
+              keyboardType="number-pad"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Gender</Text>
+            <View style={styles.genderRow}>
+              {GENDER_OPTIONS.map((g) => (
+                <TouchableOpacity
+                  key={g}
+                  style={[styles.genderChip, editGender === g && styles.genderChipSelected]}
+                  onPress={() => setEditGender(g)}>
+                  <Text style={[styles.genderChipText, editGender === g && styles.genderChipTextSelected]}>
+                    {g}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+            onPress={saveProfile}
+            disabled={saving}>
+            <Text style={styles.saveBtnText}>
+              {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Profile'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Illnesses Section */}
+      <View style={styles.illnessCard}>
+        <Text style={styles.sectionTitle}>Current Illnesses</Text>
 
         {illnesses.length === 0 && (
           <Text style={styles.emptyText}>No illnesses added yet</Text>
@@ -282,48 +344,134 @@ const styles = StyleSheet.create({
     ...Typography.h1,
     color: Colors.text,
   },
-  avatarCard: {
+  summaryCard: {
     backgroundColor: Colors.card,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
-    alignItems: 'center',
     marginBottom: Spacing.lg,
     ...Shadows.card,
   },
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.lg,
+  },
   avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
   },
   avatarText: {
     fontFamily: 'Inter-Bold',
-    fontSize: 28,
+    fontSize: 24,
     color: Colors.primary,
   },
+  avatarInfo: {
+    flex: 1,
+  },
   userName: {
-    ...Typography.h3,
+    ...Typography.h2,
     color: Colors.text,
+  },
+  emailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: 4,
   },
   userEmail: {
     ...Typography.caption,
     color: Colors.textTertiary,
-    marginTop: 2,
   },
-  sectionCard: {
+  summaryDivider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+    marginVertical: Spacing.lg,
+  },
+  summaryDetails: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  detailItem: {
+    flex: 1,
+    backgroundColor: Colors.inputBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+    gap: 4,
+  },
+  detailIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  detailLabel: {
+    ...Typography.small,
+    color: Colors.textTertiary,
+  },
+  detailValue: {
+    ...Typography.bodyMedium,
+    color: Colors.text,
+    fontSize: 14,
+  },
+  illnessTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+  },
+  illnessTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.dangerLight,
+    borderWidth: 1,
+    borderColor: Colors.dangerBorder,
+  },
+  illnessTagText: {
+    ...Typography.small,
+    color: Colors.text,
+    fontFamily: 'Inter-Medium',
+  },
+  illnessTagDelete: {
+    padding: 2,
+  },
+  editToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+  },
+  editToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  editToggleText: {
+    ...Typography.bodyMedium,
+    color: Colors.primary,
+  },
+  editCard: {
     backgroundColor: Colors.card,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
     ...Shadows.card,
-  },
-  sectionTitle: {
-    ...Typography.h3,
-    color: Colors.text,
-    marginBottom: Spacing.lg,
   },
   field: {
     marginBottom: Spacing.lg,
@@ -382,29 +530,17 @@ const styles = StyleSheet.create({
     ...Typography.button,
     color: Colors.textInverse,
   },
-  illnessList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  illnessChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
+  illnessCard: {
+    backgroundColor: Colors.card,
     borderRadius: Radius.xl,
-    backgroundColor: Colors.dangerLight,
-    borderWidth: 1,
-    borderColor: Colors.dangerBorder,
+    padding: Spacing.xl,
+    marginBottom: Spacing.lg,
+    ...Shadows.card,
   },
-  illnessChipText: {
-    ...Typography.caption,
+  sectionTitle: {
+    ...Typography.h3,
     color: Colors.text,
-  },
-  illnessDeleteBtn: {
-    padding: 2,
+    marginBottom: Spacing.lg,
   },
   emptyText: {
     ...Typography.body,

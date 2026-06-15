@@ -1,11 +1,22 @@
 import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { useFocusEffect } from 'expo-router';
-import { Pill, AlertTriangle, CheckCircle2, Clock } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, FlatList } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Pill, AlertTriangle, CheckCircle2, Clock, Archive } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
+
+const ICON_MAP: Record<string, string> = {
+  drawer: '\u{1F5C4}',
+  cabinet: '\u{1F5C5}',
+  shelf: '\u{1F4DA}',
+  fridge: '\u{1F9CA}',
+  bag: '\u{1F45C}',
+  box: '\u{1F4E6}',
+  basket: '\u{1F9F9}',
+  closet: '\u{1F3E0}',
+};
 
 function daysUntil(dateStr: string): number {
   const now = new Date();
@@ -57,7 +68,6 @@ function DonutChart({ good, expiring, expired, size = 180 }: DonutChartProps) {
   const expiringStroke = circumference * expiringPct;
   const expiredStroke = circumference * expiredPct;
 
-  // Segments: expired starts at 0, expiring after expired, good after expired+expiring
   const expiredOffset = 0;
   const expiringOffset = expiredStroke;
   const goodOffset = expiredStroke + expiringStroke;
@@ -65,7 +75,6 @@ function DonutChart({ good, expiring, expired, size = 180 }: DonutChartProps) {
   return (
     <View style={styles.chartContainer}>
       <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
-        {/* Background track */}
         <Circle
           cx={center}
           cy={center}
@@ -74,7 +83,6 @@ function DonutChart({ good, expiring, expired, size = 180 }: DonutChartProps) {
           strokeWidth={strokeWidth}
           fill="none"
         />
-        {/* Good segment */}
         {good > 0 && (
           <Circle
             cx={center}
@@ -88,7 +96,6 @@ function DonutChart({ good, expiring, expired, size = 180 }: DonutChartProps) {
             strokeLinecap="round"
           />
         )}
-        {/* Expiring segment */}
         {expiring > 0 && (
           <Circle
             cx={center}
@@ -102,7 +109,6 @@ function DonutChart({ good, expiring, expired, size = 180 }: DonutChartProps) {
             strokeLinecap="round"
           />
         )}
-        {/* Expired segment */}
         {expired > 0 && (
           <Circle
             cx={center}
@@ -125,20 +131,31 @@ function DonutChart({ good, expiring, expired, size = 180 }: DonutChartProps) {
   );
 }
 
+interface Inventory {
+  id: string;
+  name: string;
+  icon: string;
+  sort_order: number;
+}
+
 export default function HomeScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [medicines, setMedicines] = useState<any[]>([]);
+  const [inventories, setInventories] = useState<Inventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
-    const [medRes, profRes] = await Promise.all([
+    const [medRes, profRes, invRes] = await Promise.all([
       supabase.from('medicines').select('*').order('expiration_date', { ascending: true }),
       supabase.from('profiles').select('*').eq('id', user!.id).single(),
+      supabase.from('inventories').select('*').order('sort_order', { ascending: true }),
     ]);
     if (medRes.data) setMedicines(medRes.data);
     if (profRes.data) setProfile(profRes.data);
+    if (invRes.data) setInventories(invRes.data);
     setLoading(false);
     setRefreshing(false);
   }, [user]);
@@ -167,6 +184,11 @@ export default function HomeScreen() {
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  const inventoryMedCount = (invId: string) =>
+    medicines.filter((m) => m.inventory_id === invId).length;
+
+  const unassignedCount = medicines.filter((m) => !m.inventory_id).length;
 
   if (!user) return null;
 
@@ -233,6 +255,69 @@ export default function HomeScreen() {
           <Text style={styles.statNumber}>{good.length}</Text>
           <Text style={styles.statCaption}>Good</Text>
         </View>
+      </View>
+
+      {/* Inventories Section */}
+      <View style={styles.inventorySection}>
+        <View style={styles.inventoryHeader}>
+          <View style={styles.inventoryHeaderLeft}>
+            <Archive size={18} color={Colors.primary} strokeWidth={2} />
+            <Text style={styles.inventoryTitle}>My Inventories</Text>
+          </View>
+          <Text style={styles.inventoryCount}>{inventories.length} location{inventories.length !== 1 ? 's' : ''}</Text>
+        </View>
+
+        {inventories.length === 0 ? (
+          <TouchableOpacity
+            style={styles.emptyInventoryCard}
+            onPress={() => router.navigate('/(tabs)/medicines')}
+            activeOpacity={0.7}>
+            <View style={styles.emptyInventoryIcon}>
+              <Archive size={28} color={Colors.textTertiary} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.emptyInventoryTitle}>No inventories yet</Text>
+            <Text style={styles.emptyInventorySubtext}>
+              Go to Medicines to create your first inventory
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.inventoryGrid}>
+            {inventories.map((inv) => {
+              const count = inventoryMedCount(inv.id);
+              return (
+                <TouchableOpacity
+                  key={inv.id}
+                  style={styles.inventoryCard}
+                  onPress={() => router.navigate('/(tabs)/medicines')}
+                  activeOpacity={0.7}>
+                  <View style={styles.inventoryCardIcon}>
+                    <Text style={styles.inventoryEmoji}>{ICON_MAP[inv.icon] ?? '\u{1F4E6}'}</Text>
+                  </View>
+                  <Text style={styles.inventoryCardName} numberOfLines={1}>{inv.name}</Text>
+                  <View style={styles.inventoryBadge}>
+                    <Pill size={10} color={Colors.primary} strokeWidth={2.5} />
+                    <Text style={styles.inventoryBadgeText}>{count}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            {unassignedCount > 0 && (
+              <TouchableOpacity
+                style={styles.inventoryCard}
+                onPress={() => router.navigate('/(tabs)/medicines')}
+                activeOpacity={0.7}>
+                <View style={[styles.inventoryCardIcon, { backgroundColor: Colors.warningLight }]}>
+                  <Text style={styles.inventoryEmoji}>{'\u{2753}'}</Text>
+                </View>
+                <Text style={styles.inventoryCardName} numberOfLines={1}>Unassigned</Text>
+                <View style={[styles.inventoryBadge, { backgroundColor: Colors.warningLight }]}>
+                  <Pill size={10} color={Colors.warning} strokeWidth={2.5} />
+                  <Text style={[styles.inventoryBadgeText, { color: Colors.warning }]}>{unassignedCount}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
 
       {expired.length > 0 && (
@@ -360,6 +445,100 @@ const styles = StyleSheet.create({
     ...Typography.small,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  inventorySection: {
+    marginBottom: Spacing.lg,
+  },
+  inventoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  inventoryHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  inventoryTitle: {
+    ...Typography.h3,
+    color: Colors.text,
+  },
+  inventoryCount: {
+    ...Typography.caption,
+    color: Colors.textTertiary,
+  },
+  inventoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  inventoryCard: {
+    width: '47%',
+    backgroundColor: Colors.card,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    ...Shadows.card,
+  },
+  inventoryCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  inventoryEmoji: {
+    fontSize: 22,
+  },
+  inventoryCardName: {
+    ...Typography.bodyMedium,
+    color: Colors.text,
+    fontSize: 14,
+    marginBottom: Spacing.xs,
+  },
+  inventoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.primaryLight,
+  },
+  inventoryBadgeText: {
+    ...Typography.small,
+    color: Colors.primary,
+    fontFamily: 'Inter-SemiBold',
+  },
+  emptyInventoryCard: {
+    backgroundColor: Colors.card,
+    borderRadius: Radius.xl,
+    padding: Spacing.xxl,
+    alignItems: 'center',
+    ...Shadows.card,
+  },
+  emptyInventoryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.inputBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  emptyInventoryTitle: {
+    ...Typography.h3,
+    color: Colors.text,
+  },
+  emptyInventorySubtext: {
+    ...Typography.caption,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 16,
   },
   alertCard: {
     backgroundColor: Colors.dangerLight,
