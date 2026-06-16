@@ -267,6 +267,29 @@ export default function HomeScreen() {
           <Text style={styles.inventoryCount}>{inventories.length} location{inventories.length !== 1 ? 's' : ''}</Text>
         </View>
 
+        {/* All Medicines - Main card */}
+        <TouchableOpacity
+          style={styles.allMedicinesCard}
+          onPress={() => router.navigate('/(tabs)/medicines')}
+          activeOpacity={0.7}>
+          <View style={styles.allMedicinesLeft}>
+            <View style={styles.allMedicinesIconCircle}>
+              <Pill size={22} color={Colors.textInverse} strokeWidth={2} />
+            </View>
+            <View style={styles.allMedicinesInfo}>
+              <Text style={styles.allMedicinesTitle}>All Medicines</Text>
+              <Text style={styles.allMedicinesSubtext}>
+                {medicines.length} medicine{medicines.length !== 1 ? 's' : ''} across {inventories.length} inventor{inventories.length !== 1 ? 'ies' : 'y'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.allMedicinesRight}>
+            <View style={styles.allMedicinesCount}>
+              <Text style={styles.allMedicinesCountText}>{medicines.length}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
         {inventories.length === 0 ? (
           <TouchableOpacity
             style={styles.emptyInventoryCard}
@@ -472,6 +495,64 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
+  },
+  allMedicinesCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    ...Shadows.button,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  allMedicinesLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+  },
+  allMedicinesIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  allMedicinesInfo: {
+    flex: 1,
+  },
+  allMedicinesTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 17,
+    color: Colors.textInverse,
+    lineHeight: 22,
+  },
+  allMedicinesSubtext: {
+    ...Typography.small,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 1,
+  },
+  allMedicinesRight: {
+    alignItems: 'center',
+  },
+  allMedicinesCount: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  allMedicinesCountText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 20,
+    color: Colors.textInverse,
   },
   inventoryCard: {
     width: '47%',
