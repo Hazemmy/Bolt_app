@@ -1,24 +1,25 @@
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuth } from '@/context/auth';
-import { AuthScreen } from '@/components/AuthScreen';
 import { ReactNode } from 'react';
-import { Colors } from '@/lib/theme';
+import { useTheme } from '@/context/theme';
 
-export function AuthGate({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+interface AuthGateProps {
+  children: ReactNode;
+}
+
+export function AuthGate({ children }: AuthGateProps) {
+  const { loading } = useAuth();
+  const { colors } = useTheme();
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={[styles.center, { backgroundColor: colors.bg }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  if (!user) {
-    return <AuthScreen />;
-  }
-
+  // Always show children - auth is optional
   return <>{children}</>;
 }
 
@@ -27,6 +28,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.bg,
   },
 });

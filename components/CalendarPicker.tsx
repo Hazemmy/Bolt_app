@@ -8,6 +8,7 @@ import {
   Pressable,
 } from 'react-native';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react-native';
+import { useTheme } from '@/context/theme';
 import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
 
 interface Props {
@@ -37,6 +38,7 @@ function toDateStr(year: number, month: number, day: number): string {
 }
 
 export function CalendarPicker({ visible, selectedDate, onSelect, onClose }: Props) {
+  const { colors } = useTheme();
   const today = new Date();
   const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
 
@@ -76,26 +78,84 @@ export function CalendarPicker({ visible, selectedDate, onSelect, onClose }: Pro
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
+  const dynamicStyles = StyleSheet.create({
+    calendar: {
+      backgroundColor: colors.card,
+      borderRadius: Radius.xxl,
+      padding: Spacing.xl,
+      width: 340,
+      ...Shadows.modal,
+    },
+    navBtn: {
+      padding: Spacing.sm,
+      borderRadius: Radius.md,
+      backgroundColor: colors.inputBg,
+    },
+    headerText: {
+      ...Typography.h3,
+      color: colors.text,
+    },
+    weekText: {
+      ...Typography.caption,
+      color: colors.textTertiary,
+    },
+    dayText: {
+      ...Typography.bodyMedium,
+      fontSize: 14,
+      color: colors.text,
+    },
+    daySelected: {
+      backgroundColor: colors.primary,
+    },
+    dayToday: {
+      backgroundColor: colors.primaryLight,
+    },
+    dayTextSelected: {
+      color: colors.textInverse,
+      fontFamily: 'Inter-SemiBold',
+    },
+    dayTextToday: {
+      color: colors.primary,
+      fontFamily: 'Inter-SemiBold',
+    },
+    todayBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      borderRadius: Radius.xl,
+      backgroundColor: colors.primaryLight,
+      borderWidth: 1.5,
+      borderColor: colors.primary,
+    },
+    todayBtnText: {
+      ...Typography.caption,
+      color: colors.primaryDark,
+      fontFamily: 'Inter-SemiBold',
+    },
+  });
+
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.calendar} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={dynamicStyles.calendar} onPress={(e) => e.stopPropagation()}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-              <ChevronLeft size={20} color={Colors.text} strokeWidth={2} />
+            <TouchableOpacity onPress={prevMonth} style={dynamicStyles.navBtn}>
+              <ChevronLeft size={20} color={colors.text} strokeWidth={2} />
             </TouchableOpacity>
-            <Text style={styles.headerText}>
+            <Text style={dynamicStyles.headerText}>
               {MONTHS[viewMonth]} {viewYear}
             </Text>
-            <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-              <ChevronRight size={20} color={Colors.text} strokeWidth={2} />
+            <TouchableOpacity onPress={nextMonth} style={dynamicStyles.navBtn}>
+              <ChevronRight size={20} color={colors.text} strokeWidth={2} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.weekRow}>
             {WEEKDAYS.map((d) => (
               <View key={d} style={styles.weekCell}>
-                <Text style={styles.weekText}>{d}</Text>
+                <Text style={dynamicStyles.weekText}>{d}</Text>
               </View>
             ))}
           </View>
@@ -114,15 +174,15 @@ export function CalendarPicker({ visible, selectedDate, onSelect, onClose }: Pro
                   key={dateStr}
                   style={[
                     styles.dayCell,
-                    isSelected && styles.daySelected,
-                    isToday && !isSelected && styles.dayToday,
+                    isSelected && dynamicStyles.daySelected,
+                    isToday && !isSelected && dynamicStyles.dayToday,
                   ]}
                   onPress={() => handleSelect(day)}>
                   <Text
                     style={[
-                      styles.dayText,
-                      isSelected && styles.dayTextSelected,
-                      isToday && !isSelected && styles.dayTextToday,
+                      dynamicStyles.dayText,
+                      isSelected && dynamicStyles.dayTextSelected,
+                      isToday && !isSelected && dynamicStyles.dayTextToday,
                     ]}>
                     {day}
                   </Text>
@@ -133,14 +193,14 @@ export function CalendarPicker({ visible, selectedDate, onSelect, onClose }: Pro
 
           <View style={styles.footer}>
             <TouchableOpacity
-              style={styles.todayBtn}
+              style={dynamicStyles.todayBtn}
               onPress={() => {
                 setViewYear(today.getFullYear());
                 setViewMonth(today.getMonth());
                 onSelect(todayStr);
               }}>
-              <Calendar size={14} color={Colors.primary} strokeWidth={2} />
-              <Text style={styles.todayBtnText}>Today</Text>
+              <Calendar size={14} color={colors.primary} strokeWidth={2} />
+              <Text style={dynamicStyles.todayBtnText}>Today</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -156,27 +216,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  calendar: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.xxl,
-    padding: Spacing.xl,
-    width: 340,
-    ...Shadows.modal,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.lg,
-  },
-  navBtn: {
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.inputBg,
-  },
-  headerText: {
-    ...Typography.h3,
-    color: Colors.text,
   },
   weekRow: {
     flexDirection: 'row',
@@ -185,10 +229,6 @@ const styles = StyleSheet.create({
   weekCell: {
     flex: 1,
     alignItems: 'center',
-  },
-  weekText: {
-    ...Typography.caption,
-    color: Colors.textTertiary,
   },
   daysGrid: {
     flexDirection: 'row',
@@ -201,43 +241,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: Radius.md,
   },
-  daySelected: {
-    backgroundColor: Colors.primary,
-  },
-  dayToday: {
-    backgroundColor: Colors.primaryLight,
-  },
-  dayText: {
-    ...Typography.bodyMedium,
-    fontSize: 14,
-    color: Colors.text,
-  },
-  dayTextSelected: {
-    color: Colors.textInverse,
-    fontFamily: 'Inter-SemiBold',
-  },
-  dayTextToday: {
-    color: Colors.primary,
-    fontFamily: 'Inter-SemiBold',
-  },
   footer: {
     marginTop: Spacing.md,
     alignItems: 'center',
-  },
-  todayBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.primaryLight,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-  },
-  todayBtnText: {
-    ...Typography.caption,
-    color: Colors.primaryDark,
-    fontFamily: 'Inter-SemiBold',
   },
 });

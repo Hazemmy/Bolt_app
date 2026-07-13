@@ -3,170 +3,129 @@ import { Pill, Home, User } from 'lucide-react-native';
 import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus } from 'lucide-react-native';
-import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
+import { Typography, Spacing, Shadows } from '@/lib/theme';
 import { useState } from 'react';
 import { AddMedicineModal } from '@/components/AddMedicineModal';
-import { useAuth } from '@/context/auth';
+import { useTheme } from '@/context/theme';
+import { useLanguage } from '@/context/language';
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const [showAddModal, setShowAddModal] = useState(false);
-  const { user } = useAuth();
+  const { colors, isDark } = useTheme();
+  const { t, isRTL } = useLanguage();
 
-  const onAdded = async () => {
-    // Just close - the individual screens will refetch on focus
+  const titleMap: Record<string, string> = {
+    index: t.nav.home,
+    medicines: t.nav.medicines,
+    profile: t.nav.profile,
   };
 
   return (
-    <View style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      <View style={styles.tabBarInner}>
+    <View style={[styles.tabBarContainer, { backgroundColor: colors.tabBar, borderTopColor: colors.tabBarBorder, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.tabBarInner, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
 
-          const iconMap: Record<string, any> = {
-            index: Home,
-            medicines: Pill,
-            profile: User,
-          };
-
+          const iconMap: Record<string, any> = { index: Home, medicines: Pill, profile: User };
           const IconComponent = iconMap[route.name] || Home;
 
           const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
+            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+            if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
           };
 
-          // Middle position gets the floating add button (no label)
           if (index === 1) {
             return (
-              <View key={route.key} style={styles.tabItemContainer}>
-                <TouchableOpacity onPress={onPress} style={styles.addBtnTabItem}>
-                  <TouchableOpacity
-                    style={styles.floatingAddBtn}
-                    onPress={() => setShowAddModal(true)}
-                    activeOpacity={0.85}>
-                    <Plus size={28} color={Colors.textInverse} strokeWidth={2.5} />
-                  </TouchableOpacity>
+              <View key={route.key} style={styles.fabSlot}>
+                <TouchableOpacity
+                  style={[styles.fab, { backgroundColor: colors.primary, borderColor: isDark ? colors.cardBorder : '#EEF9F8' }]}
+                  onPress={() => setShowAddModal(true)}
+                  activeOpacity={0.82}>
+                  <Plus size={26} color={colors.textInverse} strokeWidth={2.5} />
                 </TouchableOpacity>
               </View>
             );
           }
 
           return (
-            <TouchableOpacity
-              key={route.key}
-              onPress={onPress}
-              style={styles.tabItem}>
+            <TouchableOpacity key={route.key} onPress={onPress} style={styles.tabItem}>
               <IconComponent
                 size={22}
-                color={isFocused ? Colors.tabBarActive : Colors.tabBarInactive}
+                color={isFocused ? colors.tabBarActive : colors.tabBarInactive}
                 strokeWidth={2}
               />
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
-                {options.title || route.name}
+              <Text style={[styles.tabLabel, { color: isFocused ? colors.tabBarActive : colors.tabBarInactive }]}>
+                {titleMap[route.name] || options.title || route.name}
               </Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      <AddMedicineModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdded={onAdded}
-      />
+      <AddMedicineModal visible={showAddModal} onClose={() => setShowAddModal(false)} onAdded={() => {}} />
     </View>
   );
 }
 
 export default function TabLayout() {
+  const { t } = useLanguage();
+
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-        }}
-      />
-      <Tabs.Screen
-        name="medicines"
-        options={{
-          title: 'Medicines',
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-        }}
-      />
+    <Tabs tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
+      <Tabs.Screen name="index" options={{ title: t.nav.home }} />
+      <Tabs.Screen name="medicines" options={{ title: t.nav.medicines }} />
+      <Tabs.Screen name="profile" options={{ title: t.nav.profile }} />
     </Tabs>
   );
 }
 
+const FAB_SIZE = 54;
+
 const styles = StyleSheet.create({
   tabBarContainer: {
-    backgroundColor: Colors.card,
-    borderTopColor: Colors.divider,
     borderTopWidth: 1,
-    ...Shadows.card,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 10,
+    direction: 'ltr',
   },
   tabBarInner: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingTop: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+    height: 60,
+    alignItems: 'center',
+    direction: 'ltr',
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
-    paddingVertical: Spacing.xs,
+    justifyContent: 'center',
+    gap: 3,
+    direction: 'ltr',
   },
-  tabItemContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  addBtnTabItem: {
+  fabSlot: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: Spacing.xs,
+    direction: 'ltr',
   },
-  tabLabel: {
-    ...Typography.tabLabel,
-    color: Colors.tabBarInactive,
-  },
-  tabLabelActive: {
-    color: Colors.tabBarActive,
-  },
-  floatingAddBtn: {
-    position: 'absolute',
-    top: -34,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.primary,
+  fab: {
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: Colors.card,
-    ...Shadows.button,
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
+    shadowColor: '#0D9488',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  tabLabel: {
+    ...Typography.tabLabel,
   },
 });

@@ -11,9 +11,10 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { X, Plus, Trash2 } from 'lucide-react-native';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/auth';
+import { X, Plus, Trash2, Archive, Sparkles } from 'lucide-react-native';
+import { useStorage } from '@/context/storage';
+import { useTheme } from '@/context/theme';
+import { useLanguage } from '@/context/language';
 import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
 
 const ICON_OPTIONS = [
@@ -41,13 +42,6 @@ function iconEmoji(key: string): string {
   return map[key] ?? '\u{1F4E6}';
 }
 
-interface Inventory {
-  id: string;
-  name: string;
-  icon: string;
-  sort_order: number;
-}
-
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -55,112 +49,225 @@ interface Props {
 }
 
 export function ManageInventoriesModal({ visible, onClose, onInventoriesChanged }: Props) {
-  const { user } = useAuth();
-  const [inventories, setInventories] = useState<Inventory[]>([]);
+  const { inventories, addInventory, deleteInventory } = useStorage();
+  const { colors } = useTheme();
+  const { t, isRTL } = useLanguage();
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('box');
 
-  useEffect(() => {
-    if (visible) fetchInventories();
-  }, [visible]);
-
-  const fetchInventories = async () => {
-    const { data } = await supabase
-      .from('inventories')
-      .select('*')
-      .eq('user_id', user!.id)
-      .order('sort_order', { ascending: true });
-    setInventories(data ?? []);
-  };
-
-  const addInventory = async () => {
+  const handleAddInventory = async () => {
     if (!newName.trim()) return;
-    const maxOrder = inventories.reduce((max, i) => Math.max(max, i.sort_order), -1);
-    await supabase.from('inventories').insert({
-      user_id: user!.id,
-      name: newName.trim(),
-      icon: newIcon,
-      sort_order: maxOrder + 1,
-    });
+    await addInventory(newName.trim(), newIcon);
     setNewName('');
     setNewIcon('box');
-    await fetchInventories();
     onInventoriesChanged();
   };
 
-  const deleteInventory = async (id: string) => {
+  const handleDeleteInventory = async (id: string) => {
     const ok =
       Platform.OS === 'web'
-        ? window.confirm('Delete this inventory? Medicines in it will become unassigned.')
+        ? window.confirm(t.medicines.deleteInventoryConfirm)
         : await new Promise<boolean>((resolve) => {
-            Alert.alert('Delete Inventory', 'Medicines in it will become unassigned.', [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+            Alert.alert(t.medicines.deleteInventoryTitle, t.medicines.deleteInventoryConfirm, [
+              { text: t.common.cancel, style: 'cancel', onPress: () => resolve(false) },
+              { text: t.common.delete, style: 'destructive', onPress: () => resolve(true) },
             ]);
           });
     if (!ok) return;
-    await supabase.from('inventories').delete().eq('id', id);
-    await fetchInventories();
+    await deleteInventory(id);
     onInventoriesChanged();
   };
+
+  const dynamicStyles = StyleSheet.create({
+    sheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: Radius.xxl,
+      borderTopRightRadius: Radius.xxl,
+      paddingHorizontal: Spacing.xl,
+      paddingTop: Spacing.sm,
+      paddingBottom: Spacing.xxxl,
+      maxHeight: '85%',
+      ...Shadows.modal,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.inputBorder,
+      alignSelf: 'center',
+      marginBottom: Spacing.lg,
+    },
+    sheetTitle: {
+      ...Typography.h2,
+      color: colors.text,
+    },
+    closeBtn: {
+      padding: Spacing.sm,
+      borderRadius: Radius.md,
+      backgroundColor: colors.inputBg,
+    },
+    inventoryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      paddingVertical: Spacing.md,
+    },
+    inventoryName: {
+      flex: 1,
+      ...Typography.bodyMedium,
+      color: colors.text,
+    },
+    deleteBtn: {
+      padding: Spacing.sm,
+      borderRadius: Radius.md,
+      backgroundColor: colors.inputBg,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.divider,
+    },
+    emptyText: {
+      ...Typography.body,
+      color: colors.textTertiary,
+      textAlign: 'center',
+      paddingVertical: Spacing.xl,
+    },
+    sectionLabel: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+      fontFamily: 'Inter-SemiBold',
+      textTransform: 'uppercase',
+    },
+    iconOption: {
+      padding: Spacing.sm,
+      borderRadius: Radius.md,
+      backgroundColor: colors.inputBg,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
+    },
+    iconOptionSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primaryLight,
+    },
+    input: {
+      flex: 1,
+      ...Typography.body,
+      color: colors.text,
+      backgroundColor: colors.inputBg,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
+      textAlign: isRTL ? 'right' : 'left',
+      writingDirection: isRTL ? 'rtl' : 'ltr',
+    },
+    addBtn: {
+      backgroundColor: colors.primary,
+      borderRadius: Radius.md,
+      padding: Spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...Shadows.button,
+    },
+    addInventoryBanner: {
+      backgroundColor: colors.primaryLight,
+      borderRadius: Radius.xl,
+      padding: Spacing.lg,
+      marginBottom: Spacing.lg,
+      borderWidth: 2,
+      borderColor: colors.primary,
+    },
+    addInventoryTitle: {
+      ...Typography.bodyMedium,
+      color: colors.primaryDark,
+      fontFamily: 'Inter-SemiBold',
+      marginTop: Spacing.sm,
+    },
+    addInventorySub: {
+      ...Typography.caption,
+      color: colors.primary,
+      marginTop: 2,
+    },
+  });
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handle} />
+        <Pressable style={dynamicStyles.sheet} onPress={(e) => e.stopPropagation()}>
+          <View style={dynamicStyles.handle} />
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Manage Inventories</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={Colors.textTertiary} strokeWidth={2} />
+            <Text style={dynamicStyles.sheetTitle}>{t.medicines.manageInventories}</Text>
+            <TouchableOpacity onPress={onClose} style={dynamicStyles.closeBtn}>
+              <X size={20} color={colors.textTertiary} strokeWidth={2} />
             </TouchableOpacity>
           </View>
+
+          {/* Add new inventory section - more prominent */}
+          <View style={dynamicStyles.addInventoryBanner}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }}>
+                <Archive size={18} color={colors.primary} strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={dynamicStyles.addInventoryTitle}>{t.medicines.createNewInventory}</Text>
+                <Text style={dynamicStyles.addInventorySub}>{t.medicines.organizeByLocation}</Text>
+              </View>
+            </View>
+
+            <View style={{ marginTop: Spacing.md }}>
+              <Text style={[dynamicStyles.sectionLabel, { marginBottom: Spacing.sm }]}>{t.medicines.chooseIcon}</Text>
+              <View style={styles.iconPicker}>
+                {ICON_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[dynamicStyles.iconOption, newIcon === opt.key && dynamicStyles.iconOptionSelected]}
+                    onPress={() => setNewIcon(opt.key)}>
+                    <Text style={styles.iconOptionText}>{iconEmoji(opt.key)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={[styles.inputRow, { marginTop: Spacing.md }]}>
+              <TextInput
+                style={dynamicStyles.input}
+                value={newName}
+                onChangeText={setNewName}
+                placeholder={t.medicines.inventoryNamePlaceholder}
+                placeholderTextColor={colors.textTertiary}
+                onSubmitEditing={handleAddInventory}
+              />
+              <TouchableOpacity onPress={handleAddInventory} style={dynamicStyles.addBtn}>
+                <Plus size={18} color={colors.textInverse} strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Existing inventories list */}
+          <Text style={[dynamicStyles.sectionLabel, { marginBottom: Spacing.sm }]}>{t.medicines.yourInventories} ({inventories.length})</Text>
 
           <FlatList
             data={inventories}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={styles.inventoryRow}>
+              <View style={dynamicStyles.inventoryRow}>
                 <Text style={styles.inventoryIcon}>{iconEmoji(item.icon)}</Text>
-                <Text style={styles.inventoryName}>{item.name}</Text>
-                <TouchableOpacity onPress={() => deleteInventory(item.id)} style={styles.deleteBtn}>
-                  <Trash2 size={16} color={Colors.textTertiary} strokeWidth={2} />
+                <Text style={dynamicStyles.inventoryName}>{item.name}</Text>
+                <TouchableOpacity onPress={() => handleDeleteInventory(item.id)} style={dynamicStyles.deleteBtn}>
+                  <Trash2 size={16} color={colors.textTertiary} strokeWidth={2} />
                 </TouchableOpacity>
               </View>
             )}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={() => <View style={dynamicStyles.separator} />}
             ListEmptyComponent={
-              <Text style={styles.emptyText}>No inventories yet. Add one below!</Text>
+              <View style={{ alignItems: 'center', paddingVertical: Spacing.xl }}>
+                <Archive size={32} color={colors.textTertiary} strokeWidth={1.5} />
+                <Text style={[dynamicStyles.emptyText, { marginTop: Spacing.sm }]}>{t.home.noInventoriesYet}</Text>
+              </View>
             }
             style={styles.list}
           />
-
-          <View style={styles.addRow}>
-            <Text style={styles.sectionLabel}>Add New</Text>
-            <View style={styles.iconPicker}>
-              {ICON_OPTIONS.map((opt) => (
-                <TouchableOpacity
-                  key={opt.key}
-                  style={[styles.iconOption, newIcon === opt.key && styles.iconOptionSelected]}
-                  onPress={() => setNewIcon(opt.key)}>
-                  <Text style={styles.iconOptionText}>{iconEmoji(opt.key)}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.input}
-                value={newName}
-                onChangeText={setNewName}
-                placeholder="Inventory name"
-                placeholderTextColor={Colors.textTertiary}
-                onSubmitEditing={addInventory}
-              />
-              <TouchableOpacity onPress={addInventory} style={styles.addBtn}>
-                <Plus size={18} color={Colors.textInverse} strokeWidth={2.5} />
-              </TouchableOpacity>
-            </View>
-          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -173,96 +280,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
-  sheet: {
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: Radius.xxl,
-    borderTopRightRadius: Radius.xxl,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xxxl,
-    maxHeight: '85%',
-    ...Shadows.modal,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.inputBorder,
-    alignSelf: 'center',
-    marginBottom: Spacing.lg,
-  },
   sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.lg,
   },
-  sheetTitle: {
-    ...Typography.h2,
-    color: Colors.text,
-  },
-  closeBtn: {
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.inputBg,
-  },
   list: {
-    maxHeight: 280,
-  },
-  inventoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.md,
+    maxHeight: 250,
   },
   inventoryIcon: {
     fontSize: 22,
-  },
-  inventoryName: {
-    flex: 1,
-    ...Typography.bodyMedium,
-    color: Colors.text,
-  },
-  deleteBtn: {
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.inputBg,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: Colors.divider,
-  },
-  emptyText: {
-    ...Typography.body,
-    color: Colors.textTertiary,
-    textAlign: 'center',
-    paddingVertical: Spacing.xl,
-  },
-  addRow: {
-    marginTop: Spacing.lg,
-    gap: Spacing.md,
-  },
-  sectionLabel: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    fontFamily: 'Inter-SemiBold',
-    textTransform: 'uppercase',
   },
   iconPicker: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-  },
-  iconOption: {
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.inputBg,
-    borderWidth: 1.5,
-    borderColor: Colors.inputBorder,
-  },
-  iconOptionSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
   },
   iconOptionText: {
     fontSize: 18,
@@ -270,24 +303,5 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
-  },
-  input: {
-    flex: 1,
-    ...Typography.body,
-    color: Colors.text,
-    backgroundColor: Colors.inputBg,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderWidth: 1.5,
-    borderColor: Colors.inputBorder,
-  },
-  addBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.button,
   },
 });

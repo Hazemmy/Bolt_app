@@ -1,9 +1,11 @@
-export const Colors = {
+// Light mode colors (default)
+export const LightColors = {
   primary: '#0D9488',
   primaryLight: '#CCFBF1',
   primaryDark: '#0F766E',
   secondary: '#0EA5E9',
   secondaryLight: '#E0F2FE',
+  secondaryDark: '#0369A1',
   accent: '#F59E0B',
   danger: '#EF4444',
   dangerLight: '#FEF2F2',
@@ -33,6 +35,47 @@ export const Colors = {
   tabBarActive: '#0D9488',
   tabBarInactive: '#94A3B8',
 };
+
+// Dark mode colors
+export const DarkColors = {
+  primary: '#2DD4BF',
+  primaryLight: '#134E4A',
+  primaryDark: '#CCFBF1',
+  secondary: '#38BDF8',
+  secondaryLight: '#0C4A6E',
+  secondaryDark: '#7DD3FC',
+  accent: '#FBBF24',
+  danger: '#F87171',
+  dangerLight: '#450A0A',
+  dangerBorder: '#7F1D1D',
+  warning: '#FBBF24',
+  warningLight: '#451A03',
+  warningBorder: '#78350F',
+  success: '#34D399',
+  successLight: '#052E16',
+  successBorder: '#065F46',
+
+  bg: '#0F172A',
+  card: '#1E293B',
+  cardBorder: '#334155',
+  inputBg: '#1E293B',
+  inputBorder: '#334155',
+  inputFocus: '#2DD4BF',
+
+  text: '#F1F5F9',
+  textSecondary: '#CBD5E1',
+  textTertiary: '#64748B',
+  textInverse: '#0F172A',
+
+  divider: '#334155',
+  tabBar: '#1E293B',
+  tabBarBorder: '#334155',
+  tabBarActive: '#2DD4BF',
+  tabBarInactive: '#64748B',
+};
+
+// For backwards compatibility, export Colors as the light theme
+export const Colors = LightColors;
 
 export const Shadows = {
   card: {

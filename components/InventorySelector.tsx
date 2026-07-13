@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/auth';
-import { Colors, Radius, Typography, Spacing } from '@/lib/theme';
+import { useStorage } from '@/context/storage';
+import { useTheme } from '@/context/theme';
+import { useLanguage } from '@/context/language';
+import { Radius, Typography, Spacing } from '@/lib/theme';
 
 const ICON_MAP: Record<string, string> = {
   drawer: '\u{1F5C4}',
@@ -15,38 +15,51 @@ const ICON_MAP: Record<string, string> = {
   closet: '\u{1F3E0}',
 };
 
-interface Inventory {
-  id: string;
-  name: string;
-  icon: string;
-}
-
 interface Props {
   value: string | null;
   onChange: (id: string | null) => void;
 }
 
 export function InventorySelector({ value, onChange }: Props) {
-  const { user } = useAuth();
-  const [inventories, setInventories] = useState<Inventory[]>([]);
+  const { inventories } = useStorage();
+  const { colors } = useTheme();
+  const { t } = useLanguage();
 
-  useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from('inventories')
-        .select('id, name, icon')
-        .eq('user_id', user!.id)
-        .order('sort_order', { ascending: true });
-      setInventories(data ?? []);
-    };
-    fetch();
-  }, [user]);
+  const dynamicStyles = StyleSheet.create({
+    label: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: 8,
+      borderRadius: Radius.xl,
+      backgroundColor: colors.inputBg,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
+    },
+    chipSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primaryLight,
+    },
+    chipText: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+    },
+    chipTextSelected: {
+      color: colors.primaryDark,
+      fontFamily: 'Inter-SemiBold',
+    },
+  });
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Inventory</Text>
+      <Text style={dynamicStyles.label}>{t.medicines.inventoryLabel}</Text>
       <FlatList
-        data={[{ id: '__none__', name: 'Unassigned', icon: 'box' }, ...inventories]}
+        data={[{ id: '__none__', name: t.home.unassigned, icon: 'box' }, ...inventories]}
         keyExtractor={(item) => item.id}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -54,12 +67,12 @@ export function InventorySelector({ value, onChange }: Props) {
           const isSelected = item.id === '__none__' ? value === null : value === item.id;
           return (
             <TouchableOpacity
-              style={[styles.chip, isSelected && styles.chipSelected]}
+              style={[dynamicStyles.chip, isSelected && dynamicStyles.chipSelected]}
               onPress={() => onChange(item.id === '__none__' ? null : item.id)}>
               <Text style={styles.chipIcon}>
                 {item.id === '__none__' ? '\u{2753}' : ICON_MAP[item.icon] ?? '\u{1F4E6}'}
               </Text>
-              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+              <Text style={[dynamicStyles.chipText, isSelected && dynamicStyles.chipTextSelected]}>
                 {item.name}
               </Text>
             </TouchableOpacity>
@@ -72,40 +85,7 @@ export function InventorySelector({ value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.sm,
-  },
-  label: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 8,
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.inputBg,
-    borderWidth: 1.5,
-    borderColor: Colors.inputBorder,
-  },
-  chipSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
-  },
-  chipIcon: {
-    fontSize: 14,
-  },
-  chipText: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-  },
-  chipTextSelected: {
-    color: Colors.primaryDark,
-    fontFamily: 'Inter-SemiBold',
-  },
-  chipGap: {
-    width: Spacing.sm,
-  },
+  container: { gap: Spacing.sm },
+  chipIcon: { fontSize: 14 },
+  chipGap: { width: Spacing.sm },
 });

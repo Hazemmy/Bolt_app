@@ -8,12 +8,20 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Shield } from 'lucide-react-native';
+import { Shield, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/context/auth';
+import { useTheme } from '@/context/theme';
+import { useLanguage } from '@/context/language';
 import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
 
-export function AuthScreen() {
+interface AuthScreenProps {
+  onBack?: () => void;
+}
+
+export function AuthScreen({ onBack }: AuthScreenProps) {
   const { signIn, signUp } = useAuth();
+  const { colors } = useTheme();
+  const { t, isRTL } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +30,7 @@ export function AuthScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      setError('Please fill in all fields');
+      setError(t.auth.fillAllFields);
       return;
     }
     setError(null);
@@ -36,35 +44,141 @@ export function AuthScreen() {
     setSubmitting(false);
   };
 
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.xl,
+    },
+    iconCircle: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.primaryLight,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: Spacing.lg,
+    },
+    title: {
+      ...Typography.hero,
+      color: colors.text,
+    },
+    subtitle: {
+      ...Typography.body,
+      color: colors.textSecondary,
+      marginTop: Spacing.xs,
+    },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: Radius.xl,
+      padding: Spacing.xl,
+      ...Shadows.card,
+    },
+    cardTitle: {
+      ...Typography.h2,
+      color: colors.text,
+      marginBottom: Spacing.lg,
+    },
+    label: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    input: {
+      ...Typography.body,
+      color: colors.text,
+      backgroundColor: colors.inputBg,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: 14,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
+      textAlign: isRTL ? 'right' : 'left',
+      writingDirection: isRTL ? 'rtl' : 'ltr',
+    },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: Radius.lg,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: Spacing.sm,
+      ...Shadows.button,
+    },
+    buttonText: {
+      ...Typography.button,
+      color: colors.textInverse,
+    },
+    guestButton: {
+      borderRadius: Radius.lg,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: Spacing.sm,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
+    },
+    guestButtonText: {
+      ...Typography.bodyMedium,
+      color: colors.textSecondary,
+    },
+    switchText: {
+      ...Typography.body,
+      color: colors.textSecondary,
+    },
+    switchLink: {
+      ...Typography.bodyMedium,
+      color: colors.primary,
+    },
+    errorBox: {
+      backgroundColor: colors.dangerLight,
+      borderRadius: Radius.md,
+      padding: Spacing.md,
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.dangerBorder,
+    },
+    errorText: {
+      ...Typography.body,
+      color: colors.danger,
+      textAlign: 'center',
+    },
+  });
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'web' ? undefined : 'padding'}
-      style={styles.container}>
+      style={dynamicStyles.container}>
+      {onBack && (
+        <TouchableOpacity onPress={onBack} style={[styles.backBtn, { flexDirection: isRTL ? 'row' : 'row-reverse' }]}>
+          <ArrowLeft size={20} color={colors.textSecondary} strokeWidth={2} />
+        </TouchableOpacity>
+      )}
+
       <View style={styles.hero}>
-        <View style={styles.iconCircle}>
-          <Shield size={36} color={Colors.primary} strokeWidth={2} />
+        <View style={dynamicStyles.iconCircle}>
+          <Shield size={36} color={colors.primary} strokeWidth={2} />
         </View>
-        <Text style={styles.title}>MedVault</Text>
-        <Text style={styles.subtitle}>Track your medicines, stay safe</Text>
+        <Text style={dynamicStyles.title}>{t.auth.appTitle}</Text>
+        <Text style={dynamicStyles.subtitle}>{t.auth.appSubtitle}</Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{isLogin ? 'Welcome back' : 'Create account'}</Text>
+      <View style={dynamicStyles.card}>
+        <Text style={dynamicStyles.cardTitle}>{isLogin ? t.auth.welcomeBack : t.auth.createAccount}</Text>
 
         {error && (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={dynamicStyles.errorBox}>
+            <Text style={dynamicStyles.errorText}>{error}</Text>
           </View>
         )}
 
         <View style={styles.field}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={dynamicStyles.label}>{t.auth.email}</Text>
           <TextInput
-            style={styles.input}
+            style={dynamicStyles.input}
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
-            placeholderTextColor={Colors.textTertiary}
+            placeholder={t.auth.emailPlaceholder}
+            placeholderTextColor={colors.textTertiary}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -72,35 +186,41 @@ export function AuthScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={dynamicStyles.label}>{t.auth.password}</Text>
           <TextInput
-            style={styles.input}
+            style={dynamicStyles.input}
             value={password}
             onChangeText={setPassword}
-            placeholder="Min 6 characters"
-            placeholderTextColor={Colors.textTertiary}
+            placeholder={t.auth.passwordPlaceholder}
+            placeholderTextColor={colors.textTertiary}
             secureTextEntry
           />
         </View>
 
         <TouchableOpacity
-          style={[styles.button, submitting && styles.buttonDisabled]}
+          style={[dynamicStyles.button, submitting && styles.buttonDisabled]}
           onPress={handleSubmit}
           disabled={submitting}>
-          <Text style={styles.buttonText}>
-            {submitting ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+          <Text style={dynamicStyles.buttonText}>
+            {submitting ? t.auth.pleaseWait : isLogin ? t.auth.signInButton : t.auth.signUpButton}
           </Text>
         </TouchableOpacity>
+
+        {onBack && (
+          <TouchableOpacity style={dynamicStyles.guestButton} onPress={onBack}>
+            <Text style={dynamicStyles.guestButtonText}>{t.auth.continueAsGuest}</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <TouchableOpacity
         onPress={() => { setIsLogin(!isLogin); setError(null); }}
         style={styles.switchRow}>
-        <Text style={styles.switchText}>
-          {isLogin ? "Don't have an account? " : 'Already have an account? '}
+        <Text style={dynamicStyles.switchText}>
+          {isLogin ? t.auth.noAccount + ' ' : t.auth.haveAccount + ' '}
         </Text>
-        <Text style={styles.switchLink}>
-          {isLogin ? 'Sign Up' : 'Sign In'}
+        <Text style={dynamicStyles.switchLink}>
+          {isLogin ? t.auth.signUp : t.auth.signIn}
         </Text>
       </TouchableOpacity>
     </KeyboardAvoidingView>
@@ -108,102 +228,26 @@ export function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
   hero: {
     alignItems: 'center',
     marginBottom: Spacing.xxxl,
   },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  title: {
-    ...Typography.hero,
-    color: Colors.text,
-  },
-  subtitle: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    ...Shadows.card,
-  },
-  cardTitle: {
-    ...Typography.h2,
-    color: Colors.text,
-    marginBottom: Spacing.lg,
-  },
   field: {
     marginBottom: Spacing.lg,
-  },
-  label: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  input: {
-    ...Typography.body,
-    color: Colors.text,
-    backgroundColor: Colors.inputBg,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.inputBorder,
-  },
-  button: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-    ...Shadows.button,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    ...Typography.button,
-    color: Colors.textInverse,
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: Spacing.xl,
   },
-  switchText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
+  buttonDisabled: {
+    opacity: 0.6,
   },
-  switchLink: {
-    ...Typography.bodyMedium,
-    color: Colors.primary,
-  },
-  errorBox: {
-    backgroundColor: Colors.dangerLight,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.dangerBorder,
-  },
-  errorText: {
-    ...Typography.body,
-    color: Colors.danger,
-    textAlign: 'center',
+  backBtn: {
+    position: 'absolute',
+    top: 56,
+    left: Spacing.xl,
+    padding: Spacing.sm,
+    zIndex: 10,
   },
 });
