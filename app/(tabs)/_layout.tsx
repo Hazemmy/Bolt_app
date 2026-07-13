@@ -22,7 +22,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   };
 
   return (
-    <View style={[styles.tabBarContainer, { backgroundColor: colors.tabBar, borderTopColor: colors.tabBarBorder }]}>
+    <View style={[styles.tabBarContainer, { backgroundColor: colors.tabBar, borderTopColor: colors.tabBarBorder, paddingBottom: insets.bottom }]}>
       <View style={[styles.tabBarInner, isRTL && { flexDirection: 'row-reverse' }]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
