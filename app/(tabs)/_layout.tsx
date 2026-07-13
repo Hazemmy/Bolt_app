@@ -13,7 +13,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const [showAddModal, setShowAddModal] = useState(false);
   const { colors, isDark } = useTheme();
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
   const titleMap: Record<string, string> = {
     index: t.nav.home,
@@ -23,7 +23,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <View style={[styles.tabBarContainer, { backgroundColor: colors.tabBar, borderTopColor: colors.tabBarBorder }]}>
-      <View style={styles.tabBarInner}>
+      <View style={[styles.tabBarInner, isRTL && { flexDirection: 'row-reverse' }]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
