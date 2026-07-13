@@ -13,7 +13,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const [showAddModal, setShowAddModal] = useState(false);
   const { colors, isDark } = useTheme();
-  const { t, isRTL } = useLanguage();
+  const { t } = useLanguage();
 
   const titleMap: Record<string, string> = {
     index: t.nav.home,
@@ -22,8 +22,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   };
 
   return (
-    <View style={[styles.tabBarContainer, { backgroundColor: colors.tabBar, borderTopColor: colors.tabBarBorder, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-      <View style={[styles.tabBarInner, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+    <View style={[styles.tabBarContainer, { backgroundColor: colors.tabBar, borderTopColor: colors.tabBarBorder }]}>
+      <View style={styles.tabBarInner}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -91,26 +91,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.07,
     shadowRadius: 10,
     elevation: 10,
-    direction: 'ltr',
   },
   tabBarInner: {
     flexDirection: 'row',
     height: 60,
     alignItems: 'center',
-    direction: 'ltr',
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    direction: 'ltr',
   },
   fabSlot: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    direction: 'ltr',
   },
   fab: {
     width: FAB_SIZE,
