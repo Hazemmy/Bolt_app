@@ -10,6 +10,7 @@ import {
 import { X, Pencil, Calendar, Hash, FileText, Check, Tag } from 'lucide-react-native';
 import { useStorage, Medicine } from '@/context/storage';
 import { useTheme } from '@/context/theme';
+import { useLanguage } from '@/context/language';
 import { DateInput } from '@/components/DateInput';
 import { InventorySelector } from '@/components/InventorySelector';
 import { SwipeableSheet } from '@/components/SwipeableSheet';
@@ -22,14 +23,15 @@ interface Props {
   onSaved: () => void;
 }
 
-const CATEGORIES = [
-  'Antibiotic', 'Painkiller', 'Antihistamine', 'Antiviral',
-  'Vitamin', 'Supplement', 'Antifungal', 'Antacid', 'Steroid', 'Other',
-];
+const CATEGORY_KEYS = [
+  'antibiotic', 'painkiller', 'antihistamine', 'antiviral',
+  'vitamin', 'supplement', 'antifungal', 'antacid', 'steroid', 'other',
+] as const;
 
 export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props) {
   const { updateMedicine } = useStorage();
   const { colors } = useTheme();
+  const { t, isRTL } = useLanguage();
   const [name, setName] = useState('');
   const [expirationDate, setExpirationDate] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -57,11 +59,11 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
 
   const handleSubmit = async () => {
     if (!medicine) return;
-    if (!name.trim()) { setError('Medicine name is required'); return; }
-    if (!expirationDate.trim()) { setError('Expiration date is required'); return; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(expirationDate.trim())) { setError('Please enter a valid expiration date'); return; }
+    if (!name.trim()) { setError(t.medicineForm.errors.nameRequired); return; }
+    if (!expirationDate.trim()) { setError(t.medicineForm.errors.expirationRequired); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(expirationDate.trim())) { setError(t.medicineForm.errors.invalidDate); return; }
     const qty = parseInt(quantity, 10);
-    if (isNaN(qty) || qty < 1) { setError('Quantity must be at least 1'); return; }
+    if (isNaN(qty) || qty < 1) { setError(t.medicineForm.errors.quantityMin); return; }
 
     setError(null);
     setSubmitting(true);
@@ -76,7 +78,7 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
     });
 
     if (!success) {
-      setError('Failed to update medicine');
+      setError(t.medicines.errors.addFailed);
     } else {
       setSaved(true);
       onSaved();
@@ -108,6 +110,8 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
       backgroundColor: colors.inputBg, borderRadius: Radius.md,
       paddingHorizontal: Spacing.lg, paddingVertical: 14,
       borderWidth: 1.5, borderColor: colors.inputBorder,
+      textAlign: isRTL ? 'right' : 'left',
+      writingDirection: isRTL ? 'rtl' : 'ltr',
     },
     catChip: {
       paddingHorizontal: Spacing.lg, paddingVertical: 9,
@@ -152,7 +156,7 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
     >
       <View style={dynamicStyles.handle} />
       <View style={styles.sheetHeader}>
-        <Text style={dynamicStyles.sheetTitle}>Edit Medicine</Text>
+        <Text style={dynamicStyles.sheetTitle}>{t.medicineForm.editTitle}</Text>
         <TouchableOpacity onPress={handleClose} style={dynamicStyles.closeBtn}>
           <X size={20} color={colors.textTertiary} strokeWidth={2} />
         </TouchableOpacity>
@@ -166,7 +170,7 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
       {saved && (
         <View style={dynamicStyles.successBox}>
           <Check size={16} color={colors.success} strokeWidth={2} />
-          <Text style={dynamicStyles.successText}>Changes saved!</Text>
+          <Text style={dynamicStyles.successText}>{t.profile.saved}</Text>
         </View>
       )}
 
@@ -179,16 +183,16 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
         <View style={styles.field}>
           <View style={styles.labelRow}>
             <Pencil size={16} color={colors.primary} strokeWidth={2} />
-            <Text style={dynamicStyles.label}>Medicine Name</Text>
+            <Text style={dynamicStyles.label}>{t.medicineForm.nameLabel}</Text>
           </View>
           <TextInput style={dynamicStyles.input} value={name} onChangeText={setName}
-            placeholder="e.g. Amoxicillin" placeholderTextColor={colors.textTertiary} />
+            placeholder={t.medicineForm.namePlaceholder} placeholderTextColor={colors.textTertiary} />
         </View>
 
         <View style={styles.field}>
           <View style={styles.labelRow}>
             <Calendar size={16} color={colors.primary} strokeWidth={2} />
-            <Text style={dynamicStyles.label}>Expiration Date</Text>
+            <Text style={dynamicStyles.label}>{t.medicineForm.expirationLabel}</Text>
           </View>
           <DateInput value={expirationDate} onChangeText={setExpirationDate} />
         </View>
@@ -196,26 +200,26 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
         <View style={styles.field}>
           <View style={styles.labelRow}>
             <Hash size={16} color={colors.primary} strokeWidth={2} />
-            <Text style={dynamicStyles.label}>Quantity</Text>
+            <Text style={dynamicStyles.label}>{t.medicineForm.quantityLabel}</Text>
           </View>
           <TextInput style={dynamicStyles.input} value={quantity} onChangeText={setQuantity}
-            placeholder="e.g. 30" placeholderTextColor={colors.textTertiary} keyboardType="number-pad" />
+            placeholder={t.medicineForm.quantityPlaceholder} placeholderTextColor={colors.textTertiary} keyboardType="number-pad" />
         </View>
 
         <View style={styles.field}>
           <View style={styles.labelRow}>
             <Tag size={16} color={colors.primary} strokeWidth={2} />
-            <Text style={dynamicStyles.label}>Category</Text>
+            <Text style={dynamicStyles.label}>{t.medicineForm.categoryLabel}</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.categoryRow}>
-              {CATEGORIES.map((cat) => (
+              {CATEGORY_KEYS.map((catKey) => (
                 <TouchableOpacity
-                  key={cat}
-                  style={[dynamicStyles.catChip, category === cat.toLowerCase() && dynamicStyles.catChipActive]}
-                  onPress={() => setCategory(category === cat.toLowerCase() ? '' : cat.toLowerCase())}>
-                  <Text style={[dynamicStyles.catChipText, category === cat.toLowerCase() && dynamicStyles.catChipTextActive]}>
-                    {cat}
+                  key={catKey}
+                  style={[dynamicStyles.catChip, category === catKey && dynamicStyles.catChipActive]}
+                  onPress={() => setCategory(category === catKey ? '' : catKey)}>
+                  <Text style={[dynamicStyles.catChipText, category === catKey && dynamicStyles.catChipTextActive]}>
+                    {t.medicines.categories[catKey]}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -230,12 +234,12 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
         <View style={styles.field}>
           <View style={styles.labelRow}>
             <FileText size={16} color={colors.primary} strokeWidth={2} />
-            <Text style={dynamicStyles.label}>Notes (optional)</Text>
+            <Text style={dynamicStyles.label}>{t.medicineForm.notesLabel}</Text>
           </View>
           <TextInput
             style={[dynamicStyles.input, styles.textArea]}
             value={notes} onChangeText={setNotes}
-            placeholder="e.g. Take with food"
+            placeholder={t.medicineForm.notesPlaceholder}
             placeholderTextColor={colors.textTertiary}
             multiline numberOfLines={2} textAlignVertical="top" />
         </View>
@@ -251,7 +255,7 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
           {saved ? (
             <Check size={20} color={colors.textInverse} strokeWidth={2.5} />
           ) : (
-            <Text style={dynamicStyles.buttonText}>{submitting ? 'Saving...' : 'Save Changes'}</Text>
+            <Text style={dynamicStyles.buttonText}>{submitting ? t.medicines.saving : t.medicineForm.saveButton}</Text>
           )}
         </TouchableOpacity>
       </View>
