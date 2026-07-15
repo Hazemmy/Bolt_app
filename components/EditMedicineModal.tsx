@@ -5,10 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
   ScrollView,
 } from 'react-native';
 import { X, Pencil, Calendar, Hash, FileText, Check, Tag } from 'lucide-react-native';
@@ -16,6 +12,7 @@ import { useStorage, Medicine } from '@/context/storage';
 import { useTheme } from '@/context/theme';
 import { DateInput } from '@/components/DateInput';
 import { InventorySelector } from '@/components/InventorySelector';
+import { SwipeableSheet } from '@/components/SwipeableSheet';
 import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
 
 interface Props {
@@ -141,122 +138,128 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
   });
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <Pressable style={styles.backdrop} onPress={handleClose}>
-        <Pressable style={dynamicStyles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={dynamicStyles.handle} />
-          <View style={styles.sheetHeader}>
-            <Text style={dynamicStyles.sheetTitle}>Edit Medicine</Text>
-            <TouchableOpacity onPress={handleClose} style={dynamicStyles.closeBtn}>
-              <X size={20} color={colors.textTertiary} strokeWidth={2} />
-            </TouchableOpacity>
+    <SwipeableSheet
+      visible={visible}
+      onClose={handleClose}
+      sheetStyle={{
+        backgroundColor: colors.card,
+        borderTopLeftRadius: Radius.xxl,
+        borderTopRightRadius: Radius.xxl,
+        paddingHorizontal: Spacing.xl,
+        paddingTop: Spacing.sm,
+        ...Shadows.modal,
+      }}
+    >
+      <View style={dynamicStyles.handle} />
+      <View style={styles.sheetHeader}>
+        <Text style={dynamicStyles.sheetTitle}>Edit Medicine</Text>
+        <TouchableOpacity onPress={handleClose} style={dynamicStyles.closeBtn}>
+          <X size={20} color={colors.textTertiary} strokeWidth={2} />
+        </TouchableOpacity>
+      </View>
+
+      {error && (
+        <View style={dynamicStyles.errorBox}>
+          <Text style={dynamicStyles.errorText}>{error}</Text>
+        </View>
+      )}
+      {saved && (
+        <View style={dynamicStyles.successBox}>
+          <Check size={16} color={colors.success} strokeWidth={2} />
+          <Text style={dynamicStyles.successText}>Changes saved!</Text>
+        </View>
+      )}
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        keyboardShouldPersistTaps="handled"
+        style={styles.scrollArea}>
+
+        <View style={styles.field}>
+          <View style={styles.labelRow}>
+            <Pencil size={16} color={colors.primary} strokeWidth={2} />
+            <Text style={dynamicStyles.label}>Medicine Name</Text>
           </View>
+          <TextInput style={dynamicStyles.input} value={name} onChangeText={setName}
+            placeholder="e.g. Amoxicillin" placeholderTextColor={colors.textTertiary} />
+        </View>
 
-          {error && (
-            <View style={dynamicStyles.errorBox}>
-              <Text style={dynamicStyles.errorText}>{error}</Text>
+        <View style={styles.field}>
+          <View style={styles.labelRow}>
+            <Calendar size={16} color={colors.primary} strokeWidth={2} />
+            <Text style={dynamicStyles.label}>Expiration Date</Text>
+          </View>
+          <DateInput value={expirationDate} onChangeText={setExpirationDate} />
+        </View>
+
+        <View style={styles.field}>
+          <View style={styles.labelRow}>
+            <Hash size={16} color={colors.primary} strokeWidth={2} />
+            <Text style={dynamicStyles.label}>Quantity</Text>
+          </View>
+          <TextInput style={dynamicStyles.input} value={quantity} onChangeText={setQuantity}
+            placeholder="e.g. 30" placeholderTextColor={colors.textTertiary} keyboardType="number-pad" />
+        </View>
+
+        <View style={styles.field}>
+          <View style={styles.labelRow}>
+            <Tag size={16} color={colors.primary} strokeWidth={2} />
+            <Text style={dynamicStyles.label}>Category</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.categoryRow}>
+              {CATEGORIES.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[dynamicStyles.catChip, category === cat.toLowerCase() && dynamicStyles.catChipActive]}
+                  onPress={() => setCategory(category === cat.toLowerCase() ? '' : cat.toLowerCase())}>
+                  <Text style={[dynamicStyles.catChipText, category === cat.toLowerCase() && dynamicStyles.catChipTextActive]}>
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
-          {saved && (
-            <View style={dynamicStyles.successBox}>
-              <Check size={16} color={colors.success} strokeWidth={2} />
-              <Text style={dynamicStyles.successText}>Changes saved!</Text>
-            </View>
-          )}
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-            keyboardShouldPersistTaps="handled"
-            style={styles.scrollArea}>
-
-            <View style={styles.field}>
-              <View style={styles.labelRow}>
-                <Pencil size={16} color={colors.primary} strokeWidth={2} />
-                <Text style={dynamicStyles.label}>Medicine Name</Text>
-              </View>
-              <TextInput style={dynamicStyles.input} value={name} onChangeText={setName}
-                placeholder="e.g. Amoxicillin" placeholderTextColor={colors.textTertiary} />
-            </View>
-
-            <View style={styles.field}>
-              <View style={styles.labelRow}>
-                <Calendar size={16} color={colors.primary} strokeWidth={2} />
-                <Text style={dynamicStyles.label}>Expiration Date</Text>
-              </View>
-              <DateInput value={expirationDate} onChangeText={setExpirationDate} />
-            </View>
-
-            <View style={styles.field}>
-              <View style={styles.labelRow}>
-                <Hash size={16} color={colors.primary} strokeWidth={2} />
-                <Text style={dynamicStyles.label}>Quantity</Text>
-              </View>
-              <TextInput style={dynamicStyles.input} value={quantity} onChangeText={setQuantity}
-                placeholder="e.g. 30" placeholderTextColor={colors.textTertiary} keyboardType="number-pad" />
-            </View>
-
-            <View style={styles.field}>
-              <View style={styles.labelRow}>
-                <Tag size={16} color={colors.primary} strokeWidth={2} />
-                <Text style={dynamicStyles.label}>Category</Text>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.categoryRow}>
-                  {CATEGORIES.map((cat) => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[dynamicStyles.catChip, category === cat.toLowerCase() && dynamicStyles.catChipActive]}
-                      onPress={() => setCategory(category === cat.toLowerCase() ? '' : cat.toLowerCase())}>
-                      <Text style={[dynamicStyles.catChipText, category === cat.toLowerCase() && dynamicStyles.catChipTextActive]}>
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View style={styles.field}>
-              <InventorySelector value={inventoryId} onChange={setInventoryId} />
-            </View>
-
-            <View style={styles.field}>
-              <View style={styles.labelRow}>
-                <FileText size={16} color={colors.primary} strokeWidth={2} />
-                <Text style={dynamicStyles.label}>Notes (optional)</Text>
-              </View>
-              <TextInput
-                style={[dynamicStyles.input, styles.textArea]}
-                value={notes} onChangeText={setNotes}
-                placeholder="e.g. Take with food"
-                placeholderTextColor={colors.textTertiary}
-                multiline numberOfLines={2} textAlignVertical="top" />
-            </View>
-
-            <View style={styles.bottomSpacer} />
           </ScrollView>
+        </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[dynamicStyles.button, (submitting || saved) && styles.buttonDisabled]}
-              onPress={handleSubmit}
-              disabled={submitting || saved}>
-              {saved ? (
-                <Check size={20} color={colors.textInverse} strokeWidth={2.5} />
-              ) : (
-                <Text style={dynamicStyles.buttonText}>{submitting ? 'Saving...' : 'Save Changes'}</Text>
-              )}
-            </TouchableOpacity>
+        <View style={styles.field}>
+          <InventorySelector value={inventoryId} onChange={setInventoryId} />
+        </View>
+
+        <View style={styles.field}>
+          <View style={styles.labelRow}>
+            <FileText size={16} color={colors.primary} strokeWidth={2} />
+            <Text style={dynamicStyles.label}>Notes (optional)</Text>
           </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+          <TextInput
+            style={[dynamicStyles.input, styles.textArea]}
+            value={notes} onChangeText={setNotes}
+            placeholder="e.g. Take with food"
+            placeholderTextColor={colors.textTertiary}
+            multiline numberOfLines={2} textAlignVertical="top" />
+        </View>
+
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[dynamicStyles.button, (submitting || saved) && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={submitting || saved}>
+          {saved ? (
+            <Check size={20} color={colors.textInverse} strokeWidth={2.5} />
+          ) : (
+            <Text style={dynamicStyles.buttonText}>{submitting ? 'Saving...' : 'Save Changes'}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </SwipeableSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheetHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: Spacing.lg,
