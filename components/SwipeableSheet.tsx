@@ -1,16 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
-import {
-  StyleSheet,
-  Modal,
-  View,
-  Pressable,
-  DimensionValue,
-} from 'react-native';
-import {
-  GestureHandlerRootView,
-  GestureDetector,
-  Gesture,
-} from 'react-native-gesture-handler';
+import { StyleSheet, Modal, View, Pressable } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -27,7 +17,7 @@ interface Props {
   onClose: () => void;
   children: ReactNode;
   sheetStyle?: Record<string, unknown>;
-  maxHeight?: DimensionValue;
+  maxHeight?: number | string;
 }
 
 const DISMISS_THRESHOLD = 120;
@@ -91,21 +81,17 @@ export function SwipeableSheet({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <GestureHandlerRootView style={StyleSheet.absoluteFillObject}>
-        <View style={StyleSheet.absoluteFillObject}>
+      <View style={StyleSheet.absoluteFillObject}>
+        <Animated.View style={[styles.backdrop, animatedBackdropStyle]} />
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={handleBackdropPress} />
+        <GestureDetector gesture={pan}>
           <Animated.View
-            style={[styles.backdrop, animatedBackdropStyle]}
-          />
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={handleBackdropPress} />
-          <GestureDetector gesture={pan}>
-            <Animated.View
-              style={[styles.sheet, { maxHeight }, sheetStyle, animatedSheetStyle]}
-            >
-              {children}
-            </Animated.View>
-          </GestureDetector>
-        </View>
-      </GestureHandlerRootView>
+            style={[styles.sheet, { maxHeight }, sheetStyle, animatedSheetStyle]}
+          >
+            {children}
+          </Animated.View>
+        </GestureDetector>
+      </View>
     </Modal>
   );
 }
