@@ -9,6 +9,7 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Clock, Pill, AlarmClock, Check, Plus, Trash2 } from 'lucide-react-native';
 import { useStorage } from '@/context/storage';
 import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
@@ -45,6 +46,7 @@ const PRESET_TIMES: Record<string, string[]> = {
 
 export function AddToScheduleModal({ medicine, visible, onClose, onSaved }: Props) {
   const { addActiveMedication } = useStorage();
+  const insets = useSafeAreaInsets();
   const [dosage, setDosage] = useState('');
   const [frequency, setFrequency] = useState('daily');
   const [times, setTimes] = useState<string[]>(['08:00']);
@@ -243,7 +245,7 @@ export function AddToScheduleModal({ medicine, visible, onClose, onSaved }: Prop
             <View style={{ height: Spacing.lg }} />
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) + Spacing.md }]}>
             <TouchableOpacity
               style={[styles.saveBtn, (submitting || saved) && styles.saveBtnDone]}
               onPress={handleSubmit}

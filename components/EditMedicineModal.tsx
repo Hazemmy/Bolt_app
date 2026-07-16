@@ -129,7 +129,7 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
       flexDirection: 'row', ...Shadows.button,
     },
     buttonText: { ...Typography.button, color: colors.textInverse },
-    buttonContainer: { paddingBottom: insets.bottom + Spacing.xxxl, paddingTop: Spacing.md },
+    buttonContainer: { paddingBottom: Math.max(insets.bottom, 24) + Spacing.xxxl, paddingTop: Spacing.md },
     errorBox: {
       backgroundColor: colors.dangerLight, borderRadius: Radius.md,
       padding: Spacing.md, marginBottom: Spacing.md,

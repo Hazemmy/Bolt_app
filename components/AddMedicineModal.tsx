@@ -151,7 +151,7 @@ export function AddMedicineModal({ visible, onClose, onAdded }: Props) {
       backgroundColor: colors.primary, borderRadius: Radius.lg,
       paddingVertical: 16, alignItems: 'center',
       marginTop: Spacing.sm,
-      marginBottom: insets.bottom + Spacing.lg,
+      marginBottom: Math.max(insets.bottom, 24) + Spacing.lg,
       ...Shadows.button,
     },
     buttonText: { ...Typography.button, color: colors.textInverse },

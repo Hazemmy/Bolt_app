@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -91,6 +91,12 @@ export function ScanMedicineModal({ visible, onClose, onResult }: Props) {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
+
+  useEffect(() => {
+    if (visible && Platform.OS !== 'web' && permission && !permission.granted && permission.status === 'undetermined') {
+      requestPermission();
+    }
+  }, [visible, permission, requestPermission]);
 
   const reset = () => { setScanResult(null); setScanError(null); setScanning(false); };
   const handleClose = () => { reset(); onClose(); };
