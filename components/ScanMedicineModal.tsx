@@ -189,7 +189,7 @@ export function ScanMedicineModal({ visible, onClose, onResult }: Props) {
 
     return (
       <View style={styles.cameraContainer}>
-        <CameraView ref={cameraRef} style={styles.camera} facing="back">
+        <CameraView ref={cameraRef} style={styles.camera} facing="back" active={true}>
           <View style={styles.cameraOverlay}>
             <View style={styles.frameGuide}>
               <View style={[styles.corner, styles.cornerTL]} />
