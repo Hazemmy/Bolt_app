@@ -25,6 +25,17 @@
         {
           "cameraPermission": "MedVault needs camera access to scan medicine labels and identify medications."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icons": [
+            {
+              "iconId": "ic_notification",
+              "file": "./assets/images/icon.png"
+            }
+          ]
+        }
       ]
     ],
     "experiments": {

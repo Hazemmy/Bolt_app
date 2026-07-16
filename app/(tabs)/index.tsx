@@ -142,20 +142,25 @@ export default function HomeScreen() {
 
   // Setup notifications on mount
   useEffect(() => {
-    if (Platform.OS === 'web' && !loading) {
-      requestNotificationPermission();
-      scheduleDailyReminders(
+    if (loading) return;
+    let cancelled = false;
+    (async () => {
+      const granted = await requestNotificationPermission();
+      if (!granted || cancelled) return;
+      await scheduleDailyReminders(
         activeMedications,
         (id: string) => medicines.find(m => m.id === id)?.name ?? t.home.medicinesWord
       );
+      if (cancelled) return;
       if (profile?.notify_expired || profile?.notify_expiring_soon) {
-        checkExpiryNotifications(
+        await checkExpiryNotifications(
           medicines,
           profile?.notify_expired ?? true,
           profile?.notify_expiring_soon ?? true
         );
       }
-    }
+    })();
+    return () => { cancelled = true; };
   }, [loading, activeMedications, medicines, profile]);
 
   const nextReminder = getNextReminderTime(activeMedications);

@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Modal,
@@ -17,7 +16,6 @@ import { Radius, Typography, Spacing } from '@/lib/theme';
 interface Props {
   value: string;
   onChangeText: (text: string) => void;
-  onSubmitEditing?: () => void;
 }
 
 export function toStorageDate(displayDate: string): string {
@@ -41,7 +39,7 @@ export function toDisplayDate(storageDate: string): string {
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 21 }, (_, i) => CURRENT_YEAR + 10 - i);
 
-export function DateInput({ value, onChangeText, onSubmitEditing }: Props) {
+export function DateInput({ value, onChangeText }: Props) {
   const [pickerOpen, setPickerOpen] = useState<'year' | 'month' | null>(null);
   const { colors } = useTheme();
   const { t, isRTL } = useLanguage();
@@ -64,31 +62,6 @@ export function DateInput({ value, onChangeText, onSubmitEditing }: Props) {
     [onChangeText]
   );
 
-  const handleYearChange = useCallback(
-    (raw: string) => {
-      const digits = raw.replace(/\D/g, '').slice(0, 4);
-      updateDate(digits, monthStr);
-    },
-    [monthStr, updateDate]
-  );
-
-  const handleMonthChange = useCallback(
-    (raw: string) => {
-      let digits = raw.replace(/\D/g, '').slice(0, 2);
-      const m = parseInt(digits, 10);
-      if (!isNaN(m) && m > 12) digits = '12';
-      if (!isNaN(m) && m === 0 && digits.length === 2) digits = '01';
-      updateDate(yearStr, digits);
-    },
-    [yearStr, updateDate]
-  );
-
-  const handleBlur = useCallback(() => {
-    if (monthStr.length === 1) {
-      updateDate(yearStr, '0' + monthStr);
-    }
-  }, [yearStr, monthStr, updateDate]);
-
   const handlePickerSelect = (type: 'year' | 'month', val: string) => {
     if (type === 'year') updateDate(val, monthStr);
     else updateDate(yearStr, val);
@@ -100,6 +73,11 @@ export function DateInput({ value, onChangeText, onSubmitEditing }: Props) {
     if (!isNaN(idx) && idx >= 0 && idx < 12) return t.medicines.dateInput.months[idx];
     return '';
   }, [monthStr, t]);
+
+  const yearLabel = useMemo(() => {
+    if (yearStr.length === 4) return yearStr;
+    return '';
+  }, [yearStr]);
 
   const dynamicStyles = StyleSheet.create({
     row: {
@@ -143,7 +121,7 @@ export function DateInput({ value, onChangeText, onSubmitEditing }: Props) {
     },
     pickerBtnText: {
       ...Typography.body,
-      color: monthLabel ? colors.text : colors.textTertiary,
+      color: monthLabel || yearLabel ? colors.text : colors.textTertiary,
     },
     chevron: { opacity: 0.5 },
   });
@@ -153,16 +131,15 @@ export function DateInput({ value, onChangeText, onSubmitEditing }: Props) {
       <View style={dynamicStyles.row}>
         <View style={dynamicStyles.yearField}>
           <Text style={dynamicStyles.label}>{t.medicines.dateInput.yearLabel}</Text>
-          <TextInput
-            style={dynamicStyles.input}
-            value={yearStr}
-            onChangeText={handleYearChange}
-            placeholder={t.medicines.dateInput.yearPlaceholder}
-            placeholderTextColor={colors.textTertiary}
-            keyboardType="number-pad"
-            maxLength={4}
-            onSubmitEditing={onSubmitEditing}
-          />
+          <TouchableOpacity
+            style={dynamicStyles.pickerBtn}
+            onPress={() => setPickerOpen('year')}
+            activeOpacity={0.7}>
+            <Text style={dynamicStyles.pickerBtnText} numberOfLines={1}>
+              {yearLabel || t.medicines.dateInput.yearPlaceholder}
+            </Text>
+            <ChevronDown size={16} color={colors.textTertiary} strokeWidth={2} style={dynamicStyles.chevron} />
+          </TouchableOpacity>
         </View>
         <View style={dynamicStyles.monthField}>
           <Text style={dynamicStyles.label}>{t.medicines.dateInput.monthLabel}</Text>
@@ -176,18 +153,6 @@ export function DateInput({ value, onChangeText, onSubmitEditing }: Props) {
             <ChevronDown size={16} color={colors.textTertiary} strokeWidth={2} style={dynamicStyles.chevron} />
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Hidden text input kept for manual month typing via keyboard */}
-      <View style={styles.hiddenInput}>
-        <TextInput
-          value={monthStr}
-          onChangeText={handleMonthChange}
-          onBlur={handleBlur}
-          keyboardType="number-pad"
-          maxLength={2}
-          onSubmitEditing={onSubmitEditing}
-        />
       </View>
 
       <PickerModal
@@ -282,10 +247,6 @@ function PickerModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  hiddenInput: { position: 'absolute', opacity: 0, width: 1, height: 1, left: -9999 },
-});
 
 const pickerStyles = StyleSheet.create({
   backdrop: {
