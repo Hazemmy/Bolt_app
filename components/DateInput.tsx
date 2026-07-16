@@ -1,7 +1,15 @@
-import { useRef, useState, useCallback } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { Calendar } from 'lucide-react-native';
-import { CalendarPicker } from '@/components/CalendarPicker';
+import { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Pressable,
+  ScrollView,
+} from 'react-native';
+import { ChevronDown } from 'lucide-react-native';
 import { useTheme } from '@/context/theme';
 import { useLanguage } from '@/context/language';
 import { Radius, Typography, Spacing } from '@/lib/theme';
@@ -12,14 +20,6 @@ interface Props {
   onSubmitEditing?: () => void;
 }
 
-function padPart(part: string): string {
-  if (part.length === 1 && part !== '0') {
-    return '0' + part;
-  }
-  return part;
-}
-
-// Convert YYYY/MM to YYYY-MM-DD (use 01 as day for storage)
 export function toStorageDate(displayDate: string): string {
   if (!displayDate) return '';
   const parts = displayDate.split('/');
@@ -29,7 +29,6 @@ export function toStorageDate(displayDate: string): string {
   return displayDate;
 }
 
-// Convert YYYY-MM-DD to YYYY/MM
 export function toDisplayDate(storageDate: string): string {
   if (!storageDate) return '';
   const parts = storageDate.split('-');
@@ -39,60 +38,84 @@ export function toDisplayDate(storageDate: string): string {
   return storageDate;
 }
 
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 21 }, (_, i) => CURRENT_YEAR + 10 - i);
+
 export function DateInput({ value, onChangeText, onSubmitEditing }: Props) {
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState<'year' | 'month' | null>(null);
   const { colors } = useTheme();
-  const { isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
-  // Convert display format (YYYY/MM) to storage and back
-  const displayValue = toDisplayDate(value);
+  const parts = value.split('-');
+  const yearStr = parts[0] ?? '';
+  const monthStr = parts.length >= 2 ? parts[1] : '';
 
-  const handleChange = useCallback(
-    (raw: string) => {
-      // Remove non-digits, limit to 6 digits (YYYYMM)
-      const digits = raw.replace(/\D/g, '').slice(0, 6);
-
-      let year = digits.slice(0, 4);
-      let month = digits.slice(4, 6);
-
-      if (digits.length >= 5) {
-        const m = parseInt(month, 10);
-        if (m > 12) month = '12';
-        if (m === 0 && month.length === 2) month = '01';
+  const updateDate = useCallback(
+    (newYear: string, newMonth: string) => {
+      if (!newYear && !newMonth) {
+        onChangeText('');
+        return;
       }
-
-      let formatted = year;
-      if (digits.length > 4) formatted += '/' + month;
-
-      // Convert to storage format (YYYY-MM-01)
-      const storageDate = toStorageDate(formatted);
-      onChangeText(storageDate);
+      const y = newYear.slice(0, 4);
+      const m = newMonth.slice(0, 2);
+      const partial = [y, m].filter(Boolean).join('-');
+      if (partial) onChangeText(`${partial}-01`);
     },
     [onChangeText]
   );
 
-  const handleBlur = useCallback(() => {
-    const parts = value.split('-');
-    if (parts.length >= 2) {
-      const [y, m] = parts;
-      if (m.length === 1) {
-        onChangeText(`${y}-${padPart(m)}-01`);
-      }
-    }
-  }, [value, onChangeText]);
+  const handleYearChange = useCallback(
+    (raw: string) => {
+      const digits = raw.replace(/\D/g, '').slice(0, 4);
+      updateDate(digits, monthStr);
+    },
+    [monthStr, updateDate]
+  );
 
-  const handleCalendarSelect = (date: string) => {
-    // Calendar returns YYYY-MM-DD, convert to YYYY-MM-01
-    const parts = date.split('-');
-    if (parts.length >= 2) {
-      onChangeText(`${parts[0]}-${parts[1]}-01`);
-    } else {
-      onChangeText(date);
+  const handleMonthChange = useCallback(
+    (raw: string) => {
+      let digits = raw.replace(/\D/g, '').slice(0, 2);
+      const m = parseInt(digits, 10);
+      if (!isNaN(m) && m > 12) digits = '12';
+      if (!isNaN(m) && m === 0 && digits.length === 2) digits = '01';
+      updateDate(yearStr, digits);
+    },
+    [yearStr, updateDate]
+  );
+
+  const handleBlur = useCallback(() => {
+    if (monthStr.length === 1) {
+      updateDate(yearStr, '0' + monthStr);
     }
-    setShowCalendar(false);
+  }, [yearStr, monthStr, updateDate]);
+
+  const handlePickerSelect = (type: 'year' | 'month', val: string) => {
+    if (type === 'year') updateDate(val, monthStr);
+    else updateDate(yearStr, val);
+    setPickerOpen(null);
   };
 
+  const monthLabel = useMemo(() => {
+    const idx = parseInt(monthStr, 10) - 1;
+    if (!isNaN(idx) && idx >= 0 && idx < 12) return t.medicines.dateInput.months[idx];
+    return '';
+  }, [monthStr, t]);
+
   const dynamicStyles = StyleSheet.create({
+    row: {
+      flexDirection: isRTL ? 'row-reverse' : 'row',
+      gap: Spacing.sm,
+      alignItems: 'flex-end',
+    },
+    yearField: { flex: 1.4, gap: Spacing.xs },
+    monthField: { flex: 1, gap: Spacing.xs },
+    label: {
+      ...Typography.small,
+      color: colors.textTertiary,
+      fontFamily: 'Inter-SemiBold',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
     input: {
       ...Typography.body,
       color: colors.text,
@@ -102,50 +125,206 @@ export function DateInput({ value, onChangeText, onSubmitEditing }: Props) {
       paddingVertical: 14,
       borderWidth: 1.5,
       borderColor: colors.inputBorder,
-      paddingRight: 48,
-      textAlign: isRTL ? 'right' : 'left',
-      writingDirection: isRTL ? 'rtl' : 'ltr',
+      textAlign: 'center',
     },
-    calendarBtn: {
-      position: 'absolute',
-      right: 8,
-      top: 10,
-      padding: Spacing.sm,
-      borderRadius: Radius.sm,
-      backgroundColor: colors.card,
+    pickerBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      ...Typography.body,
+      color: colors.text,
+      backgroundColor: colors.inputBg,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: 14,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
+      height: 50,
     },
+    pickerBtnText: {
+      ...Typography.body,
+      color: monthLabel ? colors.text : colors.textTertiary,
+    },
+    chevron: { opacity: 0.5 },
   });
 
   return (
-    <View style={styles.wrapper}>
-      <TextInput
-        style={dynamicStyles.input}
-        value={displayValue}
-        onChangeText={handleChange}
-        onBlur={handleBlur}
-        placeholder="YYYY/MM"
-        placeholderTextColor={colors.textTertiary}
-        keyboardType="number-pad"
-        maxLength={7}
-        onSubmitEditing={onSubmitEditing}
+    <View>
+      <View style={dynamicStyles.row}>
+        <View style={dynamicStyles.yearField}>
+          <Text style={dynamicStyles.label}>{t.medicines.dateInput.yearLabel}</Text>
+          <TextInput
+            style={dynamicStyles.input}
+            value={yearStr}
+            onChangeText={handleYearChange}
+            placeholder={t.medicines.dateInput.yearPlaceholder}
+            placeholderTextColor={colors.textTertiary}
+            keyboardType="number-pad"
+            maxLength={4}
+            onSubmitEditing={onSubmitEditing}
+          />
+        </View>
+        <View style={dynamicStyles.monthField}>
+          <Text style={dynamicStyles.label}>{t.medicines.dateInput.monthLabel}</Text>
+          <TouchableOpacity
+            style={dynamicStyles.pickerBtn}
+            onPress={() => setPickerOpen('month')}
+            activeOpacity={0.7}>
+            <Text style={dynamicStyles.pickerBtnText} numberOfLines={1}>
+              {monthLabel || t.medicines.dateInput.monthPlaceholder}
+            </Text>
+            <ChevronDown size={16} color={colors.textTertiary} strokeWidth={2} style={dynamicStyles.chevron} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Hidden text input kept for manual month typing via keyboard */}
+      <View style={styles.hiddenInput}>
+        <TextInput
+          value={monthStr}
+          onChangeText={handleMonthChange}
+          onBlur={handleBlur}
+          keyboardType="number-pad"
+          maxLength={2}
+          onSubmitEditing={onSubmitEditing}
+        />
+      </View>
+
+      <PickerModal
+        visible={pickerOpen === 'year'}
+        title={t.medicines.dateInput.selectYear}
+        options={YEAR_OPTIONS.map(String)}
+        selected={yearStr}
+        onSelect={(v) => handlePickerSelect('year', v)}
+        onClose={() => setPickerOpen(null)}
+        colors={colors}
       />
-      <TouchableOpacity
-        style={dynamicStyles.calendarBtn}
-        onPress={() => setShowCalendar(true)}>
-        <Calendar size={18} color={colors.primary} strokeWidth={2} />
-      </TouchableOpacity>
-      <CalendarPicker
-        visible={showCalendar}
-        selectedDate={value}
-        onSelect={handleCalendarSelect}
-        onClose={() => setShowCalendar(false)}
+      <PickerModal
+        visible={pickerOpen === 'month'}
+        title={t.medicines.dateInput.selectMonth}
+        options={t.medicines.dateInput.months.map((m, i) => ({
+          label: m,
+          value: String(i + 1).padStart(2, '0'),
+        }))}
+        selected={monthStr}
+        onSelect={(v) => handlePickerSelect('month', v)}
+        onClose={() => setPickerOpen(null)}
+        colors={colors}
       />
     </View>
   );
 }
 
+interface PickerOption {
+  label: string;
+  value: string;
+}
+
+function PickerModal({
+  visible,
+  title,
+  options,
+  selected,
+  onSelect,
+  onClose,
+  colors,
+}: {
+  visible: boolean;
+  title: string;
+  options: (string | PickerOption)[];
+  selected: string;
+  onSelect: (value: string) => void;
+  onClose: () => void;
+  colors: typeof import('@/lib/theme')['LightColors'];
+}) {
+  const normalized: PickerOption[] = options.map((o) =>
+    typeof o === 'string' ? { label: o, value: o } : o
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={pickerStyles.backdrop} onPress={onClose}>
+        <Pressable
+          style={[pickerStyles.sheet, { backgroundColor: colors.card }]}
+          onPress={(e) => e.stopPropagation()}>
+          <View style={pickerStyles.handle} />
+          <Text style={[pickerStyles.title, { color: colors.text }]}>{title}</Text>
+          <ScrollView style={pickerStyles.list} showsVerticalScrollIndicator={false}>
+            {normalized.map((opt) => {
+              const isSelected = opt.value === selected;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    pickerStyles.option,
+                    {
+                      backgroundColor: isSelected ? colors.primaryLight : colors.inputBg,
+                      borderColor: isSelected ? colors.primary : colors.inputBorder,
+                    },
+                  ]}
+                  onPress={() => onSelect(opt.value)}>
+                  <Text
+                    style={[
+                      pickerStyles.optionText,
+                      {
+                        color: isSelected ? colors.primaryDark : colors.text,
+                        fontFamily: isSelected ? 'Inter-SemiBold' : 'Inter-Regular',
+                      },
+                    ]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
-  wrapper: {
-    position: 'relative',
+  hiddenInput: { position: 'absolute', opacity: 0, width: 1, height: 1, left: -9999 },
+});
+
+const pickerStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    borderTopLeftRadius: Radius.xxl,
+    borderTopRightRadius: Radius.xxl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xxxl,
+    maxHeight: '60%',
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#94A3B8',
+    alignSelf: 'center',
+    marginBottom: Spacing.lg,
+  },
+  title: {
+    ...Typography.h3,
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
+  },
+  list: { maxHeight: 400 },
+  option: {
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    marginBottom: Spacing.sm,
+    alignItems: 'center',
+  },
+  optionText: {
+    ...Typography.body,
+    fontSize: 16,
   },
 });

@@ -130,6 +130,15 @@ interface Translations {
       quantityMin: string;
       addFailed: string;
     };
+    dateInput: {
+      yearLabel: string;
+      monthLabel: string;
+      yearPlaceholder: string;
+      monthPlaceholder: string;
+      months: string[];
+      selectMonth: string;
+      selectYear: string;
+    };
     scan: {
       title: string;
       uploadPhoto: string;
@@ -455,6 +464,15 @@ const translations: Record<Language, Translations> = {
         quantityMin: 'Quantity must be at least 1',
         addFailed: 'Failed to add medicine',
       },
+      dateInput: {
+        yearLabel: 'Year',
+        monthLabel: 'Month',
+        yearPlaceholder: 'YYYY',
+        monthPlaceholder: 'MM',
+        months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+        selectMonth: 'Select month',
+        selectYear: 'Select year',
+      },
       scan: {
         title: 'Scan Medicine',
         uploadPhoto: 'Upload a photo',
@@ -770,6 +788,15 @@ const translations: Record<Language, Translations> = {
         dateInvalid: 'يرجى إدخال تاريخ انتهاء صالح',
         quantityMin: 'يجب أن تكون الكمية 1 على الأقل',
         addFailed: 'فشل في إضافة الدواء',
+      },
+      dateInput: {
+        yearLabel: 'السنة',
+        monthLabel: 'الشهر',
+        yearPlaceholder: 'سسسس',
+        monthPlaceholder: 'شش',
+        months: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],
+        selectMonth: 'اختر الشهر',
+        selectYear: 'اختر السنة',
       },
       scan: {
         title: 'مسح الدواء',

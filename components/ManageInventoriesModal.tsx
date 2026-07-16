@@ -1,21 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Modal,
   FlatList,
-  Pressable,
+  ScrollView,
   Alert,
   Platform,
 } from 'react-native';
-import { X, Plus, Trash2, Archive, Sparkles } from 'lucide-react-native';
+import { X, Plus, Trash2, Archive } from 'lucide-react-native';
 import { useStorage } from '@/context/storage';
 import { useTheme } from '@/context/theme';
 import { useLanguage } from '@/context/language';
-import { Colors, Shadows, Radius, Typography, Spacing } from '@/lib/theme';
+import { SwipeableSheet } from '@/components/SwipeableSheet';
+import { Shadows, Radius, Typography, Spacing } from '@/lib/theme';
 
 const ICON_OPTIONS = [
   { key: 'drawer', label: 'Drawer' },
@@ -79,16 +79,6 @@ export function ManageInventoriesModal({ visible, onClose, onInventoriesChanged 
   };
 
   const dynamicStyles = StyleSheet.create({
-    sheet: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: Radius.xxl,
-      borderTopRightRadius: Radius.xxl,
-      paddingHorizontal: Spacing.xl,
-      paddingTop: Spacing.sm,
-      paddingBottom: Spacing.xxxl,
-      maxHeight: '85%',
-      ...Shadows.modal,
-    },
     handle: {
       width: 40,
       height: 4,
@@ -192,102 +182,105 @@ export function ManageInventoriesModal({ visible, onClose, onInventoriesChanged 
   });
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={dynamicStyles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={dynamicStyles.handle} />
-          <View style={styles.sheetHeader}>
-            <Text style={dynamicStyles.sheetTitle}>{t.medicines.manageInventories}</Text>
-            <TouchableOpacity onPress={onClose} style={dynamicStyles.closeBtn}>
-              <X size={20} color={colors.textTertiary} strokeWidth={2} />
+    <SwipeableSheet
+      visible={visible}
+      onClose={onClose}
+      sheetStyle={{
+        backgroundColor: colors.card,
+        borderTopLeftRadius: Radius.xxl,
+        borderTopRightRadius: Radius.xxl,
+        paddingHorizontal: Spacing.xl,
+        paddingTop: Spacing.sm,
+        paddingBottom: Spacing.xxxl,
+        ...Shadows.modal,
+      }}
+    >
+      <View style={dynamicStyles.handle} />
+
+      <View style={styles.sheetHeader}>
+        <Text style={dynamicStyles.sheetTitle}>{t.medicines.manageInventories}</Text>
+        <TouchableOpacity onPress={onClose} style={dynamicStyles.closeBtn}>
+          <X size={20} color={colors.textTertiary} strokeWidth={2} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+        {/* Add new inventory section */}
+        <View style={dynamicStyles.addInventoryBanner}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }}>
+              <Archive size={18} color={colors.primary} strokeWidth={2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={dynamicStyles.addInventoryTitle}>{t.medicines.createNewInventory}</Text>
+              <Text style={dynamicStyles.addInventorySub}>{t.medicines.organizeByLocation}</Text>
+            </View>
+          </View>
+
+          <View style={{ marginTop: Spacing.md }}>
+            <Text style={[dynamicStyles.sectionLabel, { marginBottom: Spacing.sm }]}>{t.medicines.chooseIcon}</Text>
+            <View style={styles.iconPicker}>
+              {ICON_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[dynamicStyles.iconOption, newIcon === opt.key && dynamicStyles.iconOptionSelected]}
+                  onPress={() => setNewIcon(opt.key)}>
+                  <Text style={styles.iconOptionText}>{iconEmoji(opt.key)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={[styles.inputRow, { marginTop: Spacing.md }]}>
+            <TextInput
+              style={dynamicStyles.input}
+              value={newName}
+              onChangeText={setNewName}
+              placeholder={t.medicines.inventoryNamePlaceholder}
+              placeholderTextColor={colors.textTertiary}
+              onSubmitEditing={handleAddInventory}
+            />
+            <TouchableOpacity onPress={handleAddInventory} style={dynamicStyles.addBtn}>
+              <Plus size={18} color={colors.textInverse} strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Add new inventory section - more prominent */}
-          <View style={dynamicStyles.addInventoryBanner}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }}>
-                <Archive size={18} color={colors.primary} strokeWidth={2} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={dynamicStyles.addInventoryTitle}>{t.medicines.createNewInventory}</Text>
-                <Text style={dynamicStyles.addInventorySub}>{t.medicines.organizeByLocation}</Text>
-              </View>
-            </View>
+        {/* Existing inventories list */}
+        <Text style={[dynamicStyles.sectionLabel, { marginBottom: Spacing.sm }]}>{t.medicines.yourInventories} ({inventories.length})</Text>
 
-            <View style={{ marginTop: Spacing.md }}>
-              <Text style={[dynamicStyles.sectionLabel, { marginBottom: Spacing.sm }]}>{t.medicines.chooseIcon}</Text>
-              <View style={styles.iconPicker}>
-                {ICON_OPTIONS.map((opt) => (
-                  <TouchableOpacity
-                    key={opt.key}
-                    style={[dynamicStyles.iconOption, newIcon === opt.key && dynamicStyles.iconOptionSelected]}
-                    onPress={() => setNewIcon(opt.key)}>
-                    <Text style={styles.iconOptionText}>{iconEmoji(opt.key)}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={[styles.inputRow, { marginTop: Spacing.md }]}>
-              <TextInput
-                style={dynamicStyles.input}
-                value={newName}
-                onChangeText={setNewName}
-                placeholder={t.medicines.inventoryNamePlaceholder}
-                placeholderTextColor={colors.textTertiary}
-                onSubmitEditing={handleAddInventory}
-              />
-              <TouchableOpacity onPress={handleAddInventory} style={dynamicStyles.addBtn}>
-                <Plus size={18} color={colors.textInverse} strokeWidth={2.5} />
+        <FlatList
+          data={inventories}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={dynamicStyles.inventoryRow}>
+              <Text style={styles.inventoryIcon}>{iconEmoji(item.icon)}</Text>
+              <Text style={dynamicStyles.inventoryName}>{item.name}</Text>
+              <TouchableOpacity onPress={() => handleDeleteInventory(item.id)} style={dynamicStyles.deleteBtn}>
+                <Trash2 size={16} color={colors.textTertiary} strokeWidth={2} />
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Existing inventories list */}
-          <Text style={[dynamicStyles.sectionLabel, { marginBottom: Spacing.sm }]}>{t.medicines.yourInventories} ({inventories.length})</Text>
-
-          <FlatList
-            data={inventories}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={dynamicStyles.inventoryRow}>
-                <Text style={styles.inventoryIcon}>{iconEmoji(item.icon)}</Text>
-                <Text style={dynamicStyles.inventoryName}>{item.name}</Text>
-                <TouchableOpacity onPress={() => handleDeleteInventory(item.id)} style={dynamicStyles.deleteBtn}>
-                  <Trash2 size={16} color={colors.textTertiary} strokeWidth={2} />
-                </TouchableOpacity>
-              </View>
-            )}
-            ItemSeparatorComponent={() => <View style={dynamicStyles.separator} />}
-            ListEmptyComponent={
-              <View style={{ alignItems: 'center', paddingVertical: Spacing.xl }}>
-                <Archive size={32} color={colors.textTertiary} strokeWidth={1.5} />
-                <Text style={[dynamicStyles.emptyText, { marginTop: Spacing.sm }]}>{t.home.noInventoriesYet}</Text>
-              </View>
-            }
-            style={styles.list}
-          />
-        </Pressable>
-      </Pressable>
-    </Modal>
+          )}
+          ItemSeparatorComponent={() => <View style={dynamicStyles.separator} />}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', paddingVertical: Spacing.xl }}>
+              <Archive size={32} color={colors.textTertiary} strokeWidth={1.5} />
+              <Text style={[dynamicStyles.emptyText, { marginTop: Spacing.sm }]}>{t.home.noInventoriesYet}</Text>
+            </View>
+          }
+          scrollEnabled={false}
+        />
+      </ScrollView>
+    </SwipeableSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
-  },
   sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.lg,
-  },
-  list: {
-    maxHeight: 250,
   },
   inventoryIcon: {
     fontSize: 22,

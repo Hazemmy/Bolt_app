@@ -4,10 +4,11 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
-  Pressable,
+  ScrollView,
   ActivityIndicator,
   Platform,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { X, ScanLine, Camera, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react-native';
@@ -149,7 +150,11 @@ export function ScanMedicineModal({ visible, onClose, onResult }: Props) {
     }
 
     if (!permission) {
-      return <View style={styles.permissionContainer}><ActivityIndicator color={colors.primary} /></View>;
+      return (
+        <View style={styles.permissionContainer}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      );
     }
 
     if (!permission.granted) {
@@ -170,7 +175,7 @@ export function ScanMedicineModal({ visible, onClose, onResult }: Props) {
     return (
       <View style={styles.cameraContainer}>
         <CameraView ref={cameraRef} style={styles.camera} facing="back">
-          <View style={styles.overlay}>
+          <View style={styles.cameraOverlay}>
             <View style={styles.frameGuide}>
               <View style={[styles.corner, styles.cornerTL]} />
               <View style={[styles.corner, styles.cornerTR]} />
@@ -196,7 +201,6 @@ export function ScanMedicineModal({ visible, onClose, onResult }: Props) {
   };
 
   const dynamicStyles = StyleSheet.create({
-    sheet: { backgroundColor: colors.card, borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl, paddingHorizontal: Spacing.xl, paddingTop: Spacing.sm, paddingBottom: Spacing.xxxl, maxHeight: '90%', ...Shadows.modal },
     handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.inputBorder, alignSelf: 'center', marginBottom: Spacing.lg },
     title: { ...Typography.h2, color: colors.text },
     closeBtn: { padding: Spacing.sm, borderRadius: Radius.md, backgroundColor: colors.inputBg },
@@ -213,9 +217,10 @@ export function ScanMedicineModal({ visible, onClose, onResult }: Props) {
   });
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <Pressable style={styles.backdrop} onPress={handleClose}>
-        <Pressable style={dynamicStyles.sheet} onPress={(e) => e.stopPropagation()}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <View style={styles.modalOverlay}>
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={handleClose} />
+        <View style={[styles.debugSheet, { backgroundColor: colors.card }]}>
           <View style={dynamicStyles.handle} />
 
           <View style={styles.header}>
@@ -228,50 +233,52 @@ export function ScanMedicineModal({ visible, onClose, onResult }: Props) {
             </TouchableOpacity>
           </View>
 
-          {scanError && (
-            <View style={dynamicStyles.errorBox}>
-              <AlertTriangle size={16} color={colors.danger} strokeWidth={2} />
-              <Text style={dynamicStyles.errorText}>{scanError}</Text>
-            </View>
-          )}
-
-          {scanResult && !scanning && (
-            <View style={dynamicStyles.resultCard}>
-              <View style={styles.resultHeader}>
-                <CheckCircle2 size={18} color={colors.success} strokeWidth={2} />
-                <Text style={dynamicStyles.resultTitle}>{t.medicines.scan.scanComplete}</Text>
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+            {scanError && (
+              <View style={dynamicStyles.errorBox}>
+                <AlertTriangle size={16} color={colors.danger} strokeWidth={2} />
+                <Text style={dynamicStyles.errorText}>{scanError}</Text>
               </View>
-              {scanResult.name && (
-                <View style={styles.resultRow}>
-                  <Text style={dynamicStyles.resultLabel}>{t.medicines.scan.name}</Text>
-                  <Text style={dynamicStyles.resultValue}>{scanResult.name}</Text>
-                </View>
-              )}
-              {scanResult.expirationDate && (
-                <View style={styles.resultRow}>
-                  <Text style={dynamicStyles.resultLabel}>{t.medicines.scan.expiry}</Text>
-                  <Text style={dynamicStyles.resultValue}>{scanResult.expirationDate}</Text>
-                </View>
-              )}
-              <View style={styles.resultActions}>
-                <TouchableOpacity style={dynamicStyles.resultUseBtn} onPress={handleUseResult}>
-                  <Text style={dynamicStyles.resultUseBtnText}>{t.medicines.scan.useDetails}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={dynamicStyles.resultRetryBtn} onPress={reset}>
-                  <RefreshCw size={16} color={colors.textSecondary} strokeWidth={2} />
-                  <Text style={dynamicStyles.resultRetryText}>{t.medicines.scan.rescan}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+            )}
 
-          {!scanResult && (
-            <View style={styles.cameraWrapper}>
-              {renderCamera()}
-            </View>
-          )}
-        </Pressable>
-      </Pressable>
+            {scanResult && !scanning && (
+              <View style={dynamicStyles.resultCard}>
+                <View style={styles.resultHeader}>
+                  <CheckCircle2 size={18} color={colors.success} strokeWidth={2} />
+                  <Text style={dynamicStyles.resultTitle}>{t.medicines.scan.scanComplete}</Text>
+                </View>
+                {scanResult.name && (
+                  <View style={styles.resultRow}>
+                    <Text style={dynamicStyles.resultLabel}>{t.medicines.scan.name}</Text>
+                    <Text style={dynamicStyles.resultValue}>{scanResult.name}</Text>
+                  </View>
+                )}
+                {scanResult.expirationDate && (
+                  <View style={styles.resultRow}>
+                    <Text style={dynamicStyles.resultLabel}>{t.medicines.scan.expiry}</Text>
+                    <Text style={dynamicStyles.resultValue}>{scanResult.expirationDate}</Text>
+                  </View>
+                )}
+                <View style={styles.resultActions}>
+                  <TouchableOpacity style={dynamicStyles.resultUseBtn} onPress={handleUseResult}>
+                    <Text style={dynamicStyles.resultUseBtnText}>{t.medicines.scan.useDetails}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={dynamicStyles.resultRetryBtn} onPress={reset}>
+                    <RefreshCw size={16} color={colors.textSecondary} strokeWidth={2} />
+                    <Text style={dynamicStyles.resultRetryText}>{t.medicines.scan.rescan}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {!scanResult && (
+              <View style={styles.cameraWrapper}>
+                {renderCamera()}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -280,16 +287,24 @@ const CORNER = 22;
 const CORNER_THICK = 3;
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   resultHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
   resultRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.06)' },
   resultActions: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.lg },
   cameraWrapper: { height: 360, borderRadius: Radius.xl, overflow: 'hidden', backgroundColor: '#0a0a0a' },
+  modalOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  debugSheet: {
+    borderTopLeftRadius: Radius.xxl,
+    borderTopRightRadius: Radius.xxl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xxxl,
+    maxHeight: '92%',
+  },
   cameraContainer: { flex: 1 },
   camera: { flex: 1 },
-  overlay: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, paddingHorizontal: Spacing.xl },
+  cameraOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, paddingHorizontal: Spacing.xl },
   frameGuide: { width: 260, height: 160, position: 'relative' },
   corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: 'rgba(255,255,255,0.9)' },
   cornerTL: { top: 0, left: 0, borderTopWidth: CORNER_THICK, borderLeftWidth: CORNER_THICK, borderTopLeftRadius: 4 },

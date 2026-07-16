@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
@@ -118,6 +118,17 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const [illnesses, setIllnesses] = useState<Illness[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const inventoriesRef = useRef<Inventory[]>([]);
+  inventoriesRef.current = inventories;
+  const medicinesRef = useRef<Medicine[]>([]);
+  medicinesRef.current = medicines;
+  const activeMedicationsRef = useRef<ActiveMedication[]>([]);
+  activeMedicationsRef.current = activeMedications;
+  const illnessesRef = useRef<Illness[]>([]);
+  illnessesRef.current = illnesses;
+  const profileRef = useRef<Profile | null>(null);
+  profileRef.current = profile;
+
   const isLocal = !user;
 
   const refresh = useCallback(async () => {
@@ -184,7 +195,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     if (!user) {
       // Local storage
       newMed.id = generateId();
-      const updated = [...medicines, newMed];
+      const updated = [...medicinesRef.current, newMed];
       setMedicines(updated);
       setLocalData(LOCAL_KEYS.medicines, updated);
       return newMed;
@@ -198,13 +209,13 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setMedicines(prev => [...prev, data]);
       return data;
     }
-  }, [user, medicines]);
+  }, [user]);
 
   const updateMedicine = useCallback(async (id: string, updates: Partial<Medicine>): Promise<boolean> => {
     const now = new Date().toISOString();
 
     if (!user) {
-      const updated = medicines.map(m =>
+      const updated = medicinesRef.current.map(m =>
         m.id === id ? { ...m, ...updates, updated_at: now } : m
       );
       setMedicines(updated);
@@ -219,11 +230,11 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setMedicines(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
       return true;
     }
-  }, [user, medicines]);
+  }, [user]);
 
   const deleteMedicine = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
-      const updated = medicines.filter(m => m.id !== id);
+      const updated = medicinesRef.current.filter(m => m.id !== id);
       setMedicines(updated);
       setLocalData(LOCAL_KEYS.medicines, updated);
       return true;
@@ -233,7 +244,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setMedicines(prev => prev.filter(m => m.id !== id));
       return true;
     }
-  }, [user, medicines]);
+  }, [user]);
 
   // Inventory operations
   const addInventory = useCallback(async (name: string, icon: string): Promise<Inventory | null> => {
@@ -248,7 +259,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
 
     if (!user) {
       newInv.id = generateId();
-      const updated = [...inventories, newInv];
+      const updated = [...inventoriesRef.current, newInv];
       setInventories(updated);
       setLocalData(LOCAL_KEYS.inventories, updated);
       return newInv;
@@ -263,11 +274,11 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setInventories(prev => [...prev, data]);
       return data;
     }
-  }, [user, inventories]);
+  }, [user]);
 
   const updateInventory = useCallback(async (id: string, updates: Partial<Inventory>): Promise<boolean> => {
     if (!user) {
-      const updated = inventories.map(inv => inv.id === id ? { ...inv, ...updates } : inv);
+      const updated = inventoriesRef.current.map(inv => inv.id === id ? { ...inv, ...updates } : inv);
       setInventories(updated);
       setLocalData(LOCAL_KEYS.inventories, updated);
       return true;
@@ -277,15 +288,15 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setInventories(prev => prev.map(inv => inv.id === id ? { ...inv, ...updates } : inv));
       return true;
     }
-  }, [user, inventories]);
+  }, [user]);
 
   const deleteInventory = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
-      const updated = inventories.filter(inv => inv.id !== id);
+      const updated = inventoriesRef.current.filter(inv => inv.id !== id);
       setInventories(updated);
       setLocalData(LOCAL_KEYS.inventories, updated);
       // Remove inventory_id from medicines
-      const medsUpdated = medicines.map(m => m.inventory_id === id ? { ...m, inventory_id: null } : m);
+      const medsUpdated = medicinesRef.current.map(m => m.inventory_id === id ? { ...m, inventory_id: null } : m);
       setMedicines(medsUpdated);
       setLocalData(LOCAL_KEYS.medicines, medsUpdated);
       return true;
@@ -295,11 +306,11 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setInventories(prev => prev.filter(inv => inv.id !== id));
       return true;
     }
-  }, [user, inventories, medicines]);
+  }, [user]);
 
   const updateInventoriesOrder = useCallback(async (orderedIds: string[]): Promise<boolean> => {
     if (!user) {
-      const updated = inventories.map(inv => ({
+      const updated = inventoriesRef.current.map(inv => ({
         ...inv,
         sort_order: orderedIds.indexOf(inv.id),
       })).sort((a, b) => a.sort_order - b.sort_order);
@@ -317,7 +328,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       );
       return true;
     }
-  }, [user, inventories]);
+  }, [user]);
 
   // Active Medication operations
   const addActiveMedication = useCallback(async (medData: Omit<ActiveMedication, 'id' | 'created_at'>): Promise<ActiveMedication | null> => {
@@ -330,7 +341,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
 
     if (!user) {
       newMed.id = generateId();
-      const updated = [...activeMedications, newMed];
+      const updated = [...activeMedicationsRef.current, newMed];
       setActiveMedications(updated);
       setLocalData(LOCAL_KEYS.activeMedications, updated);
       return newMed;
@@ -343,11 +354,11 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setActiveMedications(prev => [...prev, data]);
       return data;
     }
-  }, [user, activeMedications]);
+  }, [user]);
 
   const updateActiveMedication = useCallback(async (id: string, updates: Partial<ActiveMedication>): Promise<boolean> => {
     if (!user) {
-      const updated = activeMedications.map(m => m.id === id ? { ...m, ...updates } : m);
+      const updated = activeMedicationsRef.current.map(m => m.id === id ? { ...m, ...updates } : m);
       setActiveMedications(updated);
       setLocalData(LOCAL_KEYS.activeMedications, updated);
       return true;
@@ -357,11 +368,11 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setActiveMedications(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
       return true;
     }
-  }, [user, activeMedications]);
+  }, [user]);
 
   const removeActiveMedication = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
-      const updated = activeMedications.filter(m => m.id !== id);
+      const updated = activeMedicationsRef.current.filter(m => m.id !== id);
       setActiveMedications(updated);
       setLocalData(LOCAL_KEYS.activeMedications, updated);
       return true;
@@ -371,7 +382,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setActiveMedications(prev => prev.filter(m => m.id !== id));
       return true;
     }
-  }, [user, activeMedications]);
+  }, [user]);
 
   // Profile operations
   const updateProfile = useCallback(async (updates: Partial<Profile>): Promise<boolean> => {
@@ -387,7 +398,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setProfile(newProfile);
       return true;
     }
-  }, [user, profile]);
+  }, [user]);
 
   // Illness operations
   const addIllness = useCallback(async (name: string): Promise<Illness | null> => {
@@ -400,7 +411,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
 
     if (!user) {
       newIllness.id = generateId();
-      const updated = [...illnesses, newIllness];
+      const updated = [...illnessesRef.current, newIllness];
       setIllnesses(updated);
       setLocalData(LOCAL_KEYS.illnesses, updated);
       return newIllness;
@@ -413,11 +424,11 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setIllnesses(prev => [...prev, data]);
       return data;
     }
-  }, [user, illnesses]);
+  }, [user]);
 
   const deleteIllness = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
-      const updated = illnesses.filter(i => i.id !== id);
+      const updated = illnessesRef.current.filter(i => i.id !== id);
       setIllnesses(updated);
       setLocalData(LOCAL_KEYS.illnesses, updated);
       return true;
@@ -427,7 +438,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setIllnesses(prev => prev.filter(i => i.id !== id));
       return true;
     }
-  }, [user, illnesses]);
+  }, [user]);
 
   // Sync local data to cloud when user signs in
   const syncToCloud = useCallback(async (): Promise<boolean> => {

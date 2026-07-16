@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Pencil, Calendar, Hash, FileText, Check, Tag } from 'lucide-react-native';
 import { useStorage, Medicine } from '@/context/storage';
 import { useTheme } from '@/context/theme';
@@ -32,6 +33,7 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
   const { updateMedicine } = useStorage();
   const { colors } = useTheme();
   const { t, isRTL } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [expirationDate, setExpirationDate] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -127,6 +129,7 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
       flexDirection: 'row', ...Shadows.button,
     },
     buttonText: { ...Typography.button, color: colors.textInverse },
+    buttonContainer: { paddingBottom: insets.bottom + Spacing.xxxl, paddingTop: Spacing.md },
     errorBox: {
       backgroundColor: colors.dangerLight, borderRadius: Radius.md,
       padding: Spacing.md, marginBottom: Spacing.md,
@@ -247,7 +250,7 @@ export function EditMedicineModal({ visible, medicine, onClose, onSaved }: Props
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      <View style={styles.buttonContainer}>
+      <View style={dynamicStyles.buttonContainer}>
         <TouchableOpacity
           style={[dynamicStyles.button, (submitting || saved) && styles.buttonDisabled]}
           onPress={handleSubmit}
@@ -270,7 +273,6 @@ const styles = StyleSheet.create({
   },
   scrollArea: { maxHeight: 500 },
   bottomSpacer: { height: Spacing.lg },
-  buttonContainer: { paddingBottom: Spacing.xxxl, paddingTop: Spacing.md },
   field: { gap: Spacing.sm, marginBottom: Spacing.md },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   categoryRow: { flexDirection: 'row', gap: Spacing.sm, paddingVertical: 2 },

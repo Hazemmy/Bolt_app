@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Calendar, Hash, FileText, ScanLine, Pill, Tag } from 'lucide-react-native';
 import { useStorage } from '@/context/storage';
 import { useTheme } from '@/context/theme';
@@ -34,6 +35,7 @@ export function AddMedicineModal({ visible, onClose, onAdded }: Props) {
   const { addMedicine } = useStorage();
   const { colors } = useTheme();
   const { t, isRTL } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [expirationDate, setExpirationDate] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -148,7 +150,9 @@ export function AddMedicineModal({ visible, onClose, onAdded }: Props) {
     button: {
       backgroundColor: colors.primary, borderRadius: Radius.lg,
       paddingVertical: 16, alignItems: 'center',
-      marginTop: Spacing.sm, ...Shadows.button,
+      marginTop: Spacing.sm,
+      marginBottom: insets.bottom + Spacing.lg,
+      ...Shadows.button,
     },
     buttonText: { ...Typography.button, color: colors.textInverse },
     errorBox: {
