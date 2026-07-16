@@ -91,15 +91,24 @@ export function ScanMedicineModal({ visible, onClose, onResult }: Props) {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
+  const permissionRequested = useRef(false);
+
+  const permissionStatus = permission?.status;
 
   useEffect(() => {
-    if (visible && Platform.OS !== 'web' && permission && !permission.granted && permission.status === 'undetermined') {
+    if (
+      visible &&
+      Platform.OS !== 'web' &&
+      permissionStatus === 'undetermined' &&
+      !permissionRequested.current
+    ) {
+      permissionRequested.current = true;
       requestPermission();
     }
-  }, [visible, permission, requestPermission]);
+  }, [visible, permissionStatus, requestPermission]);
 
   const reset = () => { setScanResult(null); setScanError(null); setScanning(false); };
-  const handleClose = () => { reset(); onClose(); };
+  const handleClose = () => { reset(); permissionRequested.current = false; onClose(); };
 
   const processBase64 = useCallback(async (base64: string) => {
     setScanning(true);
